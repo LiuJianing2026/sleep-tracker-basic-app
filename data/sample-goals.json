@@ -1,0 +1,7 @@
+{
+  "startWeight": 75.5,
+  "targetWeight": 68,
+  "startDate": "2026-05-10",
+  "expectedWeeks": 12,
+  "dailyCalorieTarget": 1800
+}

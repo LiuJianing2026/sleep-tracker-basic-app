@@ -1,0 +1,40 @@
+[
+  {
+    "id": "2026-05-10",
+    "date": "2026-05-10",
+    "weight": 75.5,
+    "sleepHours": 7.5,
+    "sleepQuality": 4,
+    "dietExecution": 90,
+    "water": 2000,
+    "exercise": {
+      "type": "跑步",
+      "duration": 30
+    },
+    "note": "第一天记录，感觉不错"
+  },
+  {
+    "id": "2026-05-11",
+    "date": "2026-05-11",
+    "weight": 75.2,
+    "sleepHours": 6.5,
+    "sleepQuality": 3,
+    "dietExecution": 85,
+    "water": 1800,
+    "note": "睡眠不足，明天早点睡"
+  },
+  {
+    "id": "2026-05-12",
+    "date": "2026-05-12",
+    "weight": 75.0,
+    "sleepHours": 8,
+    "sleepQuality": 5,
+    "dietExecution": 95,
+    "water": 2200,
+    "exercise": {
+      "type": "力量训练",
+      "duration": 45
+    },
+    "note": "状态很好，继续保持"
+  }
+]

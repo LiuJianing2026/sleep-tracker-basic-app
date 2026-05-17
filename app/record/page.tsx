@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
-import { recordsStorage } from '@/lib/storage';
-import { DailyRecord } from '@/types';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function RecordPage() {
   // 表单状态
@@ -22,6 +22,7 @@ export default function RecordPage() {
   // 错误提示
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [loading, setLoading] = useState(false);
 
   // 睡眠质量选项
   const qualityOptions = [
@@ -57,43 +58,81 @@ export default function RecordPage() {
   };
 
   // 提交表单
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validate()) {
       return;
     }
 
-    const record: DailyRecord = {
-      id: date,
-      date,
-      weight: parseFloat(weight),
-      sleepHours: parseFloat(sleepHours),
-      sleepQuality: parseInt(sleepQuality),
-      dietExecution: parseFloat(dietExecution),
-      water: parseFloat(water),
-      exercise: exerciseType ? {
-        type: exerciseType,
-        duration: exerciseDuration ? parseInt(exerciseDuration) : undefined,
-      } : undefined,
-      note: note || undefined,
-    };
+    setLoading(true);
+    setMessage(null);
 
-    recordsStorage.save(record);
-    setMessage({ type: 'success', text: '记录保存成功！' });
+    try {
+      // 1. 获取当前用户
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    // 清空表单，但保留日期
-    setWeight('');
-    setSleepHours('');
-    setSleepQuality('');
-    setDietExecution('');
-    setWater('');
-    setExerciseType('');
-    setExerciseDuration('');
-    setNote('');
+      if (userError) {
+        setMessage({ type: 'error', text: `获取用户信息失败: ${userError.message}` });
+        setLoading(false);
+        return;
+      }
 
-    // 3秒后隐藏消息
-    setTimeout(() => setMessage(null), 3000);
+      if (!user) {
+        setMessage({ type: 'error', text: '请先登录后再记录数据' });
+        setLoading(false);
+        return;
+      }
+
+      // 2. 准备数据
+      const recordData = {
+        user_id: user.id,
+        record_date: date,
+        weight: parseFloat(weight),
+        sleep_hours: parseFloat(sleepHours),
+        sleep_quality: parseInt(sleepQuality),
+        diet_execution: parseFloat(dietExecution),
+        water: parseFloat(water),
+        exercise_type: exerciseType || null,
+        exercise_duration: exerciseDuration ? parseInt(exerciseDuration) : null,
+        note: note || null,
+      };
+
+      // 3. 使用 upsert 保存（同一天已存在则更新，不存在则插入）
+      const { data, error } = await supabase
+        .from('daily_records')
+        .upsert(recordData, {
+          onConflict: 'user_id,record_date',
+          ignoreDuplicates: false,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        setMessage({ type: 'error', text: `保存失败: ${error.message}` });
+        return;
+      }
+
+      setMessage({ type: 'success', text: '记录保存成功！' });
+
+      // 清空表单，但保留日期
+      setWeight('');
+      setSleepHours('');
+      setSleepQuality('');
+      setDietExecution('');
+      setWater('');
+      setExerciseType('');
+      setExerciseDuration('');
+      setNote('');
+
+      // 3秒后隐藏消息
+      setTimeout(() => setMessage(null), 3000);
+
+    } catch (err: any) {
+      setMessage({ type: 'error', text: `错误: ${err.message}` });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -225,8 +264,8 @@ export default function RecordPage() {
             </div>
 
             {/* 提交按钮 */}
-            <Button type="submit" className="w-full" size="lg">
-              保存记录
+            <Button type="submit" className="w-full" size="lg" disabled={loading}>
+              {loading ? '保存中...' : '保存记录'}
             </Button>
 
             {/* 提示消息 */}
@@ -239,6 +278,11 @@ export default function RecordPage() {
             )}
           </form>
         </Card>
+
+        {/* 返回首页链接 */}
+        <div className="mt-4 text-center">
+          <Link href="/" className="text-blue-500 hover:underline">返回首页</Link>
+        </div>
       </div>
     </div>
   );

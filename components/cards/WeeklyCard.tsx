@@ -1,11 +1,10 @@
 'use client';
 
-import { DailyRecord } from '@/types';
 import { VideoCard } from './VideoCard';
 
 interface WeeklyCardProps {
-  records: DailyRecord[];
-  goals?: { startWeight: number; targetWeight: number } | null;
+  records: any[];  // Supabase 返回的 daily_records 数据
+  goals?: { start_weight: number; target_weight: number } | null;
 }
 
 export const WeeklyCard = ({ records, goals }: WeeklyCardProps) => {
@@ -19,7 +18,7 @@ export const WeeklyCard = ({ records, goals }: WeeklyCardProps) => {
   weekEnd.setDate(weekStart.getDate() + 6);
 
   const thisWeekRecords = records.filter(r => {
-    const date = new Date(r.date);
+    const date = new Date(r.record_date);
     return date >= weekStart && date <= weekEnd;
   });
 
@@ -29,11 +28,11 @@ export const WeeklyCard = ({ records, goals }: WeeklyCardProps) => {
   const weeklyLost = weekStartWeight > 0 ? Number((weekStartWeight - weekEndWeight).toFixed(1)) : 0;
 
   const avgSleep = thisWeekRecords.length > 0
-    ? Number((thisWeekRecords.reduce((sum, r) => sum + r.sleepHours, 0) / thisWeekRecords.length).toFixed(1))
+    ? Number((thisWeekRecords.reduce((sum, r) => sum + r.sleep_hours, 0) / thisWeekRecords.length).toFixed(1))
     : 0;
 
   const avgExecution = thisWeekRecords.length > 0
-    ? Number((thisWeekRecords.reduce((sum, r) => sum + r.dietExecution, 0) / thisWeekRecords.length).toFixed(0))
+    ? Number((thisWeekRecords.reduce((sum, r) => sum + r.diet_execution, 0) / thisWeekRecords.length).toFixed(0))
     : 0;
 
   const recordDays = thisWeekRecords.length;

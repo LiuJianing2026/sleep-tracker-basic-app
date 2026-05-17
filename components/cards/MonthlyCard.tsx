@@ -1,11 +1,10 @@
 'use client';
 
-import { DailyRecord } from '@/types';
 import { VideoCard } from './VideoCard';
 
 interface MonthlyCardProps {
-  records: DailyRecord[];
-  goals?: { startWeight: number; targetWeight: number } | null;
+  records: any[];  // Supabase 返回的 daily_records 数据
+  goals?: { start_weight: number; target_weight: number } | null;
 }
 
 export const MonthlyCard = ({ records, goals }: MonthlyCardProps) => {
@@ -14,7 +13,7 @@ export const MonthlyCard = ({ records, goals }: MonthlyCardProps) => {
   const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
   const thisMonthRecords = records.filter(r => {
-    const date = new Date(r.date);
+    const date = new Date(r.record_date);
     return date >= monthStart && date <= monthEnd;
   });
 
@@ -24,11 +23,11 @@ export const MonthlyCard = ({ records, goals }: MonthlyCardProps) => {
   const monthlyLost = monthStartWeight > 0 ? Number((monthStartWeight - monthEndWeight).toFixed(1)) : 0;
 
   const avgSleep = thisMonthRecords.length > 0
-    ? Number((thisMonthRecords.reduce((sum, r) => sum + r.sleepHours, 0) / thisMonthRecords.length).toFixed(1))
+    ? Number((thisMonthRecords.reduce((sum, r) => sum + r.sleep_hours, 0) / thisMonthRecords.length).toFixed(1))
     : 0;
 
   const avgExecution = thisMonthRecords.length > 0
-    ? Number((thisMonthRecords.reduce((sum, r) => sum + r.dietExecution, 0) / thisMonthRecords.length).toFixed(0))
+    ? Number((thisMonthRecords.reduce((sum, r) => sum + r.diet_execution, 0) / thisMonthRecords.length).toFixed(0))
     : 0;
 
   const recordDays = thisMonthRecords.length;

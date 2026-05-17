@@ -5,12 +5,12 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-import { goalsStorage } from '@/lib/storage';
-import { UserGoals } from '@/types';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function SettingsPage() {
-  const [goals, setGoals] = useState<UserGoals | null>(null);
+  const [goals, setGoals] = useState<any>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // 表单状态
   const [startWeight, setStartWeight] = useState('');
@@ -20,39 +20,133 @@ export default function SettingsPage() {
   const [dailyCalorieTarget, setDailyCalorieTarget] = useState('');
 
   useEffect(() => {
-    const loadedGoals = goalsStorage.get();
-    setGoals(loadedGoals);
-
-    if (loadedGoals) {
-      setStartWeight(loadedGoals.startWeight.toString());
-      setTargetWeight(loadedGoals.targetWeight.toString());
-      setStartDate(loadedGoals.startDate);
-      setExpectedWeeks(loadedGoals.expectedWeeks.toString());
-      setDailyCalorieTarget(loadedGoals.dailyCalorieTarget.toString());
-    }
+    loadGoals();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const loadGoals = async () => {
+    try {
+      // 1. 获取当前用户
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    const newGoals: UserGoals = {
-      startWeight: parseFloat(startWeight),
-      targetWeight: parseFloat(targetWeight),
-      startDate,
-      expectedWeeks: parseInt(expectedWeeks),
-      dailyCalorieTarget: parseInt(dailyCalorieTarget),
-    };
+      if (userError) {
+        console.error('获取用户失败:', userError);
+        setLoading(false);
+        return;
+      }
 
-    goalsStorage.save(newGoals);
-    setGoals(newGoals);
-    setMessage({ type: 'success', text: '设置已保存！' });
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-    setTimeout(() => setMessage(null), 3000);
+      // 2. 获取用户目标
+      const { data, error } = await supabase
+        .from('user_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('获取目标失败:', error);
+      }
+
+      if (data) {
+        setGoals(data);
+        setStartWeight(data.start_weight.toString());
+        setTargetWeight(data.target_weight.toString());
+        setStartDate(data.start_date);
+        setExpectedWeeks(data.expected_weeks.toString());
+        setDailyCalorieTarget(data.daily_calorie_target.toString());
+      }
+
+    } catch (err) {
+      console.error('加载目标错误:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleClear = () => {
-    if (confirm('确定要清除所有目标设置吗？')) {
-      goalsStorage.clear();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      // 1. 获取当前用户
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+      if (userError) {
+        setMessage({ type: 'error', text: `获取用户失败: ${userError.message}` });
+        return;
+      }
+
+      if (!user) {
+        setMessage({ type: 'error', text: '请先登录' });
+        return;
+      }
+
+      const goalData = {
+        user_id: user.id,
+        start_weight: parseFloat(startWeight),
+        target_weight: parseFloat(targetWeight),
+        start_date: startDate,
+        expected_weeks: parseInt(expectedWeeks),
+        daily_calorie_target: parseInt(dailyCalorieTarget),
+      };
+
+      // 2. 使用 upsert 保存（有则更新，无则插入）
+      const { data, error } = await supabase
+        .from('user_settings')
+        .upsert(goalData, {
+          onConflict: 'user_id',
+          ignoreDuplicates: false,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        setMessage({ type: 'error', text: `保存失败: ${error.message}` });
+        return;
+      }
+
+      setGoals(data);
+      setMessage({ type: 'success', text: '设置已保存！' });
+
+      setTimeout(() => setMessage(null), 3000);
+
+    } catch (err: any) {
+      setMessage({ type: 'error', text: `错误: ${err.message}` });
+    }
+  };
+
+  const handleClear = async () => {
+    if (!confirm('确定要清除所有目标设置吗？')) {
+      return;
+    }
+
+    try {
+      // 1. 获取当前用户
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+      if (userError) {
+        setMessage({ type: 'error', text: `获取用户失败: ${userError.message}` });
+        return;
+      }
+
+      if (!user) {
+        setMessage({ type: 'error', text: '请先登录' });
+        return;
+      }
+
+      // 2. 删除目标设置
+      const { error } = await supabase
+        .from('user_settings')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) {
+        setMessage({ type: 'error', text: `删除失败: ${error.message}` });
+        return;
+      }
+
       setGoals(null);
       setStartWeight('');
       setTargetWeight('');
@@ -60,9 +154,21 @@ export default function SettingsPage() {
       setExpectedWeeks('');
       setDailyCalorieTarget('');
       setMessage({ type: 'success', text: '设置已清除' });
+
       setTimeout(() => setMessage(null), 3000);
+
+    } catch (err: any) {
+      setMessage({ type: 'error', text: `错误: ${err.message}` });
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500">加载中...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
@@ -138,19 +244,19 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="text-gray-500">起始：</span>
-                    <span className="text-gray-900">{goals.startWeight} kg</span>
+                    <span className="text-gray-900">{goals.start_weight} kg</span>
                   </div>
                   <div>
                     <span className="text-gray-500">目标：</span>
-                    <span className="text-gray-900">{goals.targetWeight} kg</span>
+                    <span className="text-gray-900">{goals.target_weight} kg</span>
                   </div>
                   <div>
                     <span className="text-gray-500">需要减重：</span>
-                    <span className="text-gray-900">{(goals.startWeight - goals.targetWeight).toFixed(1)} kg</span>
+                    <span className="text-gray-900">{(goals.start_weight - goals.target_weight).toFixed(1)} kg</span>
                   </div>
                   <div>
                     <span className="text-gray-500">预计速度：</span>
-                    <span className="text-gray-900">{((goals.startWeight - goals.targetWeight) / goals.expectedWeeks).toFixed(2)} kg/周</span>
+                    <span className="text-gray-900">{((goals.start_weight - goals.target_weight) / goals.expected_weeks).toFixed(2)} kg/周</span>
                   </div>
                 </div>
               </div>

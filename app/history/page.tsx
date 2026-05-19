@@ -19,7 +19,6 @@ export default function HistoryPage() {
     setLoading(true);
 
     try {
-      // 1. 获取当前用户
       const { data: { user }, error: userError } = await supabase.auth.getUser();
 
       if (userError) {
@@ -35,7 +34,6 @@ export default function HistoryPage() {
 
       setUser(user);
 
-      // 2. 读取当前用户的记录，按日期倒序排列，限制最近 30 条
       const { data, error } = await supabase
         .from('daily_records')
         .select('*')
@@ -56,24 +54,23 @@ export default function HistoryPage() {
     }
   };
 
-  // 删除记录
   const handleDelete = async (id: string) => {
-    if (confirm('确定要删除这条记录吗？')) {
-      const { error } = await supabase
-        .from('daily_records')
-        .delete()
-        .eq('id', id);
+    if (!confirm('确定要删除这条记录吗？')) {
+      return;
+    }
 
-      if (error) {
-        alert(`删除失败: ${error.message}`);
-      } else {
-        // 重新加载记录
-        loadRecords();
-      }
+    const { error } = await supabase
+      .from('daily_records')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      alert(`删除失败: ${error.message}`);
+    } else {
+      loadRecords();
     }
   };
 
-  // 导出数据
   const handleExport = () => {
     const dataStr = JSON.stringify(records, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
@@ -91,93 +88,119 @@ export default function HistoryPage() {
     return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
   };
 
+  const getQualityEmoji = (quality: number) => {
+    const emojis = ['😫', '😕', '😐', '😊', '😴'];
+    return emojis[quality - 1] || '😐';
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-6 lg:p-8">
+      {/* 背景装饰 */}
+      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-gradient-to-br from-orange-200/30 to-red-200/30 rounded-full blur-3xl animate-gradient" />
+        <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-gradient-to-br from-teal-200/30 to-green-200/30 rounded-full blur-3xl animate-gradient" style={{ animationDelay: '4s' }} />
+      </div>
+
       <div className="max-w-3xl mx-auto">
         {/* 头部 */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 animate-fade-in">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">历史记录</h1>
-            <p className="text-gray-600 mt-1">共 {records.length} 条记录</p>
+            <h1 className="text-3xl font-bold font-display tracking-tight">
+              <span className="text-gradient">历史记录</span>
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">共 {records.length} 条记录</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <Link href="/">
-              <Button variant="outline">返回首页</Button>
+              <Button variant="ghost">返回首页</Button>
             </Link>
             {records.length > 0 && (
-              <Button onClick={handleExport}>导出数据</Button>
+              <Button onClick={handleExport} variant="secondary">导出数据</Button>
             )}
           </div>
         </div>
 
         {loading ? (
-          <Card>
-            <div className="text-center py-8">
-              <p className="text-gray-500">加载中...</p>
-            </div>
-          </Card>
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-pulse-soft text-gray-500 dark:text-gray-400">加载中...</div>
+          </div>
         ) : !user ? (
-          <Card>
+          <Card className="glass border-0 shadow-soft">
             <div className="text-center py-8">
-              <p className="text-gray-500 mb-4">请先登录</p>
+              <div className="text-4xl mb-4">🔐</div>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">请先登录</p>
               <Link href="/login">
                 <Button>去登录</Button>
               </Link>
             </div>
           </Card>
         ) : records.length === 0 ? (
-          <Card>
+          <Card className="glass border-0 shadow-soft">
             <div className="text-center py-8">
-              <p className="text-gray-500 mb-4">暂无记录</p>
+              <div className="text-4xl mb-4">📝</div>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">暂无记录</p>
               <Link href="/record">
-                <Button>开始记录</Button>
+                <Button className="btn-hover">开始记录</Button>
               </Link>
             </div>
           </Card>
         ) : (
           <div className="space-y-4">
-            {records.map((record) => (
-              <Card key={record.id}>
-                <div className="flex justify-between items-start">
+            {records.map((record, index) => (
+              <Card
+                key={record.id}
+                className="glass border-0 shadow-soft card-hover animate-scale-in"
+                style={{ animationDelay: `${index * 0.05}s` }}
+              >
+                <div className="flex flex-col sm:flex-row justify-between gap-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <h3 className="font-semibold text-gray-900">{formatDate(record.record_date)}</h3>
-                      <span className="text-sm text-gray-500">{record.note}</span>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-red-400 flex items-center justify-center text-white font-bold shadow-soft">
+                        {getQualityEmoji(record.sleep_quality)}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900 dark:text-gray-100 font-display">
+                          {formatDate(record.record_date)}
+                        </h3>
+                        {record.note && (
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">"{record.note}"</p>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <p className="text-gray-500">体重</p>
-                        <p className="font-medium text-gray-900">{record.weight} kg</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-2xl p-3">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">体重</p>
+                        <p className="text-lg font-bold text-orange-500">{record.weight} <span className="text-sm text-gray-500">kg</span></p>
                       </div>
-                      <div>
-                        <p className="text-gray-500">睡眠</p>
-                        <p className="font-medium text-gray-900">{record.sleep_hours} 小时</p>
+                      <div className="bg-gradient-to-br from-teal-50 to-green-50 dark:from-teal-900/20 dark:to-green-900/20 rounded-2xl p-3">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">睡眠</p>
+                        <p className="text-lg font-bold text-teal-500">{record.sleep_hours} <span className="text-sm text-gray-500">h</span></p>
                       </div>
-                      <div>
-                        <p className="text-gray-500">执行率</p>
-                        <p className="font-medium text-gray-900">{record.diet_execution}%</p>
+                      <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-2xl p-3">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">执行率</p>
+                        <p className="text-lg font-bold text-purple-500">{record.diet_execution}<span className="text-sm text-gray-500">%</span></p>
                       </div>
-                      <div>
-                        <p className="text-gray-500">饮水</p>
-                        <p className="font-medium text-gray-900">{record.water} ml</p>
+                      <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-2xl p-3">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">饮水</p>
+                        <p className="text-lg font-bold text-blue-500">{record.water}<span className="text-sm text-gray-500">ml</span></p>
                       </div>
                     </div>
 
                     {record.exercise_type && (
-                      <div className="mt-3 text-sm">
-                        <span className="text-gray-500">运动：</span>
-                        <span className="text-gray-900">
-                          {record.exercise_type}
-                          {record.exercise_duration && ` (${record.exercise_duration}分钟)`}
-                        </span>
+                      <div className="mt-4 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <span className="text-lg">🏃</span>
+                        <span className="font-medium">{record.exercise_type}</span>
+                        {record.exercise_duration && (
+                          <span className="text-gray-500">· {record.exercise_duration} 分钟</span>
+                        )}
                       </div>
                     )}
                   </div>
 
                   <button
                     onClick={() => handleDelete(record.id)}
-                    className="ml-4 text-red-500 hover:text-red-700 text-sm"
+                    className="flex-shrink-0 px-4 py-2 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-sm font-medium"
                   >
                     删除
                   </button>

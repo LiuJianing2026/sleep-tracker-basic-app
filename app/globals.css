@@ -1,26 +1,284 @@
 @import "tailwindcss";
 
+/* ========================================
+   Custom Design System - Soft & Vital
+   ======================================== */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* 主色 - 温暖橙红渐变 */
+  --primary-50: #fff5f3;
+  --primary-100: #ffe5e0;
+  --primary-200: #ffccc4;
+  --primary-300: #ffafa3;
+  --primary-400: #ff8d7d;
+  --primary-500: #ff6b6b;
+  --primary-600: #f55252;
+  --primary-700: #d93838;
+  --primary-800: #b52a2a;
+  --primary-900: #952323;
+
+  /* 辅助色 - 柔和绿 */
+  --accent-50: #e6fffa;
+  --accent-100: #b2f5ea;
+  --accent-200: #81e6d9;
+  --accent-300: #4fd1c5;
+  --accent-400: #38b2ac;
+  --accent-500: #319795;
+  --accent-600: #2c7a7b;
+  --accent-700: #285e61;
+  --accent-800: #234e52;
+  --accent-900: #1d4044;
+
+  /* 背景渐变 */
+  --bg-gradient-start: #fafafa;
+  --bg-gradient-end: #f0f4f8;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+
+  /* 圆角 */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+
+  /* 字体 */
+  --font-display: var(--font-outfit);
+  --font-body: var(--font-inter);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--bg-gradient-start);
+  --color-foreground: #1a1a2e;
+  --color-primary: var(--primary-500);
+  --color-accent: var(--accent-500);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
 }
 
+/* 暗色模式 */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg-gradient-start: #0f1419;
+    --bg-gradient-end: #1a1f2e;
+    --primary-50: #3d1616;
+    --primary-100: #521a1a;
+    --primary-200: #6f1e1e;
+    --primary-300: #8d2525;
+    --primary-400: #ab2e2e;
+    --primary-500: #ff6b6b;
+    --primary-600: #ff8d8d;
+    --primary-700: #ffb4b4;
+    --primary-800: #ffd6d6;
+    --primary-900: #ffeded;
+
+    --accent-50: #0d2e2a;
+    --accent-100: #153a35;
+    --accent-200: #1f524a;
+    --accent-300: #286a5f;
+    --accent-400: #319795;
+    --accent-500: #4ecdc4;
+    --accent-600: #7edcd6;
+    --accent-700: #afece7;
+    --accent-800: #d6fdf8;
+    --accent-900: #f0fffd;
+  }
+
+  body {
+    background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+    color: var(--foreground);
   }
 }
 
 body {
-  background: var(--background);
+  background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+}
+
+/* ========================================
+   Animations
+   ======================================== */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.5s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.4s ease-out;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradientShift 8s ease infinite;
+}
+
+/* ========================================
+   Utility Classes
+   ======================================== */
+
+/* 玻璃态效果 */
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 渐变文本 */
+.text-gradient {
+  background: linear-gradient(135deg, var(--primary-500) 0%, var(--accent-500) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 柔和阴影 */
+.shadow-soft {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.shadow-soft-lg {
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* 卡片悬停效果 */
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* 按钮悬停效果 */
+.btn-hover {
+  transition: all 0.2s ease;
+}
+
+.btn-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(255, 107, 107, 0.3);
+}
+
+.btn-hover:active {
+  transform: translateY(0);
+}
+
+/* 输入框聚焦 */
+.input-focus:focus {
+  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
+  border-color: var(--primary-400);
+}
+
+/* ========================================
+   Scrollbar Styling
+   ======================================== */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--primary-400), var(--accent-400));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--primary-500), var(--accent-500));
+}
+
+/* ========================================
+   Selection Styling
+   ======================================== */
+
+::selection {
+  background: var(--primary-200);
+  color: var(--primary-900);
+}
+
+/* ========================================
+   Focus Visible
+   ======================================== */
+
+*:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
 }

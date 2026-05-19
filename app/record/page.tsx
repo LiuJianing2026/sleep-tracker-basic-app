@@ -8,7 +8,6 @@ import { Card } from '@/components/ui/Card';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function RecordPage() {
-  // 表单状态
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [weight, setWeight] = useState('');
   const [sleepHours, setSleepHours] = useState('');
@@ -18,22 +17,20 @@ export default function RecordPage() {
   const [exerciseType, setExerciseType] = useState('');
   const [exerciseDuration, setExerciseDuration] = useState('');
   const [note, setNote] = useState('');
+  const [weightUnit, setWeightUnit] = useState<'kg' | 'jin'>('kg');
 
-  // 错误提示
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // 睡眠质量选项
   const qualityOptions = [
-    { value: 1, label: '很差 😫' },
-    { value: 2, label: '较差 😕' },
-    { value: 3, label: '一般 😐' },
-    { value: 4, label: '较好 😊' },
-    { value: 5, label: '很好 😴' },
+    { value: 1, label: '很差', emoji: '😫', color: 'from-red-300 to-red-400' },
+    { value: 2, label: '较差', emoji: '😕', color: 'from-orange-300 to-orange-400' },
+    { value: 3, label: '一般', emoji: '😐', color: 'from-yellow-300 to-yellow-400' },
+    { value: 4, label: '较好', emoji: '😊', color: 'from-lime-300 to-lime-400' },
+    { value: 5, label: '很好', emoji: '😴', color: 'from-green-300 to-green-400' },
   ];
 
-  // 表单验证
   const validate = () => {
     const newErrors: Record<string, string> = {};
 
@@ -57,7 +54,6 @@ export default function RecordPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // 提交表单
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -69,7 +65,6 @@ export default function RecordPage() {
     setMessage(null);
 
     try {
-      // 1. 获取当前用户
       const { data: { user }, error: userError } = await supabase.auth.getUser();
 
       if (userError) {
@@ -84,11 +79,10 @@ export default function RecordPage() {
         return;
       }
 
-      // 2. 准备数据
       const recordData = {
         user_id: user.id,
         record_date: date,
-        weight: parseFloat(weight),
+        weight: weightUnit === 'jin' ? parseFloat(weight) * 0.5 : parseFloat(weight),
         sleep_hours: parseFloat(sleepHours),
         sleep_quality: parseInt(sleepQuality),
         diet_execution: parseFloat(dietExecution),
@@ -98,7 +92,6 @@ export default function RecordPage() {
         note: note || null,
       };
 
-      // 3. 使用 upsert 保存（同一天已存在则更新，不存在则插入）
       const { data, error } = await supabase
         .from('daily_records')
         .upsert(recordData, {
@@ -115,7 +108,6 @@ export default function RecordPage() {
 
       setMessage({ type: 'success', text: '记录保存成功！' });
 
-      // 清空表单，但保留日期
       setWeight('');
       setSleepHours('');
       setSleepQuality('');
@@ -125,7 +117,6 @@ export default function RecordPage() {
       setExerciseDuration('');
       setNote('');
 
-      // 3秒后隐藏消息
       setTimeout(() => setMessage(null), 3000);
 
     } catch (err: any) {
@@ -136,16 +127,29 @@ export default function RecordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-6 lg:p-8">
+      {/* 背景装饰 */}
+      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/3 -left-20 w-96 h-96 bg-gradient-to-br from-orange-200/30 to-red-200/30 rounded-full blur-3xl animate-gradient" />
+        <div className="absolute bottom-1/3 -right-20 w-80 h-80 bg-gradient-to-br from-teal-200/30 to-green-200/30 rounded-full blur-3xl animate-gradient" style={{ animationDelay: '4s' }} />
+      </div>
+
       <div className="max-w-2xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">今日记录</h1>
-          <p className="text-gray-600 mt-1">记录你的减脂和睡眠数据</p>
+        {/* 头部 */}
+        <div className="flex items-center justify-between mb-8 animate-fade-in">
+          <div>
+            <h1 className="text-3xl font-bold font-display tracking-tight">
+              <span className="text-gradient">今日记录</span>
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">记录你的减脂和睡眠数据</p>
+          </div>
+          <Link href="/">
+            <Button variant="ghost">返回首页</Button>
+          </Link>
         </div>
 
-        <Card>
+        <Card className="glass border-0 shadow-soft-lg animate-scale-in">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* 日期 */}
             <Input
               label="日期"
               type="date"
@@ -154,19 +158,45 @@ export default function RecordPage() {
               required
             />
 
-            {/* 体重 */}
-            <Input
-              label="体重 (kg)"
-              type="number"
-              step="0.1"
-              placeholder="例如：75.5"
-              value={weight}
-              onChange={(e) => setWeight(e.target.value)}
-              error={errors.weight}
-              required
-            />
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">体重</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setWeightUnit('kg')}
+                    className={`px-3 py-1 text-xs rounded-lg transition-all ${
+                      weightUnit === 'kg' ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                    }`}
+                  >
+                    kg
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWeightUnit('jin')}
+                    className={`px-3 py-1 text-xs rounded-lg transition-all ${
+                      weightUnit === 'jin' ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                    }`}
+                  >
+                    斤
+                  </button>
+                </div>
+              </div>
+              <Input
+                label=""
+                type="number"
+                step="0.1"
+                placeholder={`例如：${weightUnit === 'kg' ? '75.5' : '151'}`}
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                error={errors.weight}
+                required
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {weightUnit === 'kg' ? '1 斤 = 0.5 kg' : '保存时自动转换为 kg'}
+              </p>
+            </div>
 
-            {/* 睡眠时长 */}
             <Input
               label="睡眠时长（小时）"
               type="number"
@@ -180,33 +210,38 @@ export default function RecordPage() {
 
             {/* 睡眠质量 */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                 睡眠质量
               </label>
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-5 gap-3">
                 {qualityOptions.map((option) => (
                   <button
                     key={option.value}
                     type="button"
                     onClick={() => setSleepQuality(option.value.toString())}
                     className={`
-                      px-3 py-2 rounded-lg text-center text-sm transition-all
+                      relative overflow-hidden rounded-2xl p-3 text-center transition-all duration-200
                       ${sleepQuality === option.value.toString()
-                        ? 'bg-blue-500 text-white ring-2 ring-blue-500 ring-offset-2'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? `bg-gradient-to-br ${option.color} text-white shadow-lg scale-105`
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                       }
                     `}
                   >
-                    {option.label}
+                    <span className="text-2xl block mb-1">{option.emoji}</span>
+                    <span className="text-xs font-medium">{option.label}</span>
                   </button>
                 ))}
               </div>
               {errors.sleepQuality && (
-                <p className="text-sm text-red-500 mt-1">{errors.sleepQuality}</p>
+                <p className="text-sm text-red-500 mt-2 flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {errors.sleepQuality}
+                </p>
               )}
             </div>
 
-            {/* 饮食执行率 */}
             <Input
               label="饮食执行率 (%)"
               type="number"
@@ -220,7 +255,6 @@ export default function RecordPage() {
               required
             />
 
-            {/* 饮水量 */}
             <Input
               label="饮水量 (ml)"
               type="number"
@@ -232,7 +266,6 @@ export default function RecordPage() {
               required
             />
 
-            {/* 运动记录 */}
             <div className="grid grid-cols-2 gap-4">
               <Input
                 label="运动类型（选填）"
@@ -249,9 +282,8 @@ export default function RecordPage() {
               />
             </div>
 
-            {/* 注记 */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 今日总结（选填）
               </label>
               <textarea
@@ -259,30 +291,25 @@ export default function RecordPage() {
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="例如：今天状态很好，继续保持..."
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none input-focus resize-none transition-all"
               />
             </div>
 
-            {/* 提交按钮 */}
-            <Button type="submit" className="w-full" size="lg" disabled={loading}>
+            <Button type="submit" className="w-full btn-hover shadow-soft" loading={loading}>
               {loading ? '保存中...' : '保存记录'}
             </Button>
 
-            {/* 提示消息 */}
             {message && (
-              <div className={`p-3 rounded-lg text-center ${
-                message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+              <div className={`p-4 rounded-2xl text-center transition-all ${
+                message.type === 'success'
+                  ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                  : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'
               }`}>
                 {message.text}
               </div>
             )}
           </form>
         </Card>
-
-        {/* 返回首页链接 */}
-        <div className="mt-4 text-center">
-          <Link href="/" className="text-blue-500 hover:underline">返回首页</Link>
-        </div>
       </div>
     </div>
   );

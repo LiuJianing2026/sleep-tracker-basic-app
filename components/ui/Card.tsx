@@ -4,17 +4,21 @@ interface CardProps {
   children: ReactNode;
   title?: string;
   className?: string;
+  noPadding?: boolean;
+  noShadow?: boolean;
 }
 
-export const Card = ({ children, title, className = '' }: CardProps) => {
+export const Card = ({ children, title, className = '', noPadding = false, noShadow = false }: CardProps) => {
+  const shadowClass = noShadow ? '' : 'shadow-soft';
+
   return (
-    <div className={`bg-white rounded-xl shadow-sm border border-gray-200 ${className}`}>
+    <div className={`bg-white/80 dark:bg-gray-900/80 rounded-3xl backdrop-blur-xl ${shadowClass} ${noPadding ? '' : 'p-6'} ${className}`}>
       {title && (
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
+        <div className="mb-4 pb-4 border-b border-gray-100 dark:border-gray-800">
+          <h2 className="text-xl font-semibold font-display text-gray-900 dark:text-gray-100">{title}</h2>
         </div>
       )}
-      <div className="p-6">{children}</div>
+      {children}
     </div>
   );
 };

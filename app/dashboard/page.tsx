@@ -17,12 +17,10 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
 
-  // 加载数据
   const loadData = async () => {
     setLoading(true);
 
     try {
-      // 1. 获取当前用户
       const { data: { user }, error: userError } = await supabase.auth.getUser();
 
       if (userError) {
@@ -38,7 +36,6 @@ export default function DashboardPage() {
 
       setUser(user);
 
-      // 2. 获取用户目标
       const { data: goalsData } = await supabase
         .from('user_settings')
         .select('*')
@@ -47,7 +44,6 @@ export default function DashboardPage() {
 
       setGoals(goalsData);
 
-      // 3. 获取所有记录，按日期正序排列
       const { data: recordsData } = await supabase
         .from('daily_records')
         .select('*')
@@ -57,7 +53,6 @@ export default function DashboardPage() {
       if (recordsData) {
         setRecords(recordsData);
 
-        // 4. 计算统计数据
         if (recordsData.length > 0) {
           const calculatedStats = calculateStats(recordsData, goalsData);
           setStats(calculatedStats);
@@ -76,7 +71,6 @@ export default function DashboardPage() {
     loadData();
   }, []);
 
-  // 图表数据
   const chartData = records.slice(-14).map(r => ({
     date: r.record_date,
     weight: r.weight,
@@ -85,17 +79,18 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">加载中...</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse-soft text-gray-500 dark:text-gray-400">加载中...</div>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-500 mb-4">请先登录</p>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className="text-6xl mb-4">🔐</div>
+          <h2 className="text-2xl font-bold mb-4 font-display">请先登录</h2>
           <Link href="/login">
             <Button>去登录</Button>
           </Link>
@@ -106,12 +101,13 @@ export default function DashboardPage() {
 
   if (!stats) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <p className="text-gray-500 mb-4">数据不足，继续记录后生成报告</p>
-          <p className="text-sm text-gray-400 mb-4">至少需要 1 条记录</p>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center max-w-md animate-scale-in">
+          <div className="text-6xl mb-4">📝</div>
+          <h2 className="text-2xl font-bold mb-4 font-display">数据不足</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">继续记录后生成报告，至少需要 1 条记录</p>
           <Link href="/record">
-            <Button>开始记录</Button>
+            <Button className="btn-hover">开始记录</Button>
           </Link>
         </div>
       </div>
@@ -119,33 +115,48 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-6 lg:p-8">
+      {/* 背景装饰 */}
+      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-orange-200/20 to-transparent rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-teal-200/20 to-transparent rounded-full blur-3xl" />
+      </div>
+
       <div className="max-w-6xl mx-auto">
         {/* 头部 */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-8 animate-fade-in">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">减脂睡眠看板</h1>
-            <p className="text-gray-600 mt-1">追踪你的减脂进度</p>
+            <h1 className="text-3xl font-bold font-display tracking-tight">
+              <span className="text-gradient">减脂看板</span>
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">追踪你的减脂进度</p>
           </div>
           <Link href="/record">
-            <Button>今日记录</Button>
+            <Button className="btn-hover shadow-soft">
+              今日记录
+            </Button>
           </Link>
         </div>
 
         {/* 进度条 */}
         {goals && (
-          <Card className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">减脂进度</span>
-              <span className="text-sm text-gray-500">{progress.toFixed(1)}%</span>
+          <Card className="mb-8 glass border-0 shadow-soft-lg animate-scale-in" style={{ animationDelay: '0.1s' }}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">减脂进度</span>
+              <span className="text-sm font-bold text-gradient">{progress.toFixed(1)}%</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="relative w-full h-4 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
               <div
-                className="bg-blue-500 h-2 rounded-full transition-all"
+                className="absolute inset-0 h-full bg-gradient-to-r from-orange-400 to-red-400 rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+              {/* 闪光效果 */}
+              <div
+                className="absolute inset-0 h-full bg-gradient-to-r from-transparent via-white/30 to-transparent rounded-full animate-gradient"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <div className="flex justify-between mt-2 text-xs text-gray-500">
+            <div className="flex justify-between mt-3 text-xs text-gray-500 dark:text-gray-400">
               <span>起始 {stats.currentWeight + stats.totalLost}kg</span>
               <span>目标 {stats.remaining > 0 ? stats.currentWeight - stats.remaining : stats.currentWeight}kg</span>
             </div>
@@ -153,68 +164,82 @@ export default function DashboardPage() {
         )}
 
         {/* 核心指标 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 animate-scale-in" style={{ animationDelay: '0.2s' }}>
           <StatCard
             title="当前体重"
             value={stats.currentWeight}
             unit="kg"
+            gradient
           />
           <StatCard
             title="累计减重"
             value={stats.totalLost}
             unit="kg"
             trend={{ value: stats.totalLost, label: '累计' }}
+            gradient
           />
           <StatCard
             title="距离目标"
             value={stats.remaining}
             unit="kg"
+            gradient
           />
           <StatCard
             title="7日平均"
             value={stats.weeklyAvgWeight}
             unit="kg"
+            gradient
           />
         </div>
 
         {/* 第二排指标 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-scale-in" style={{ animationDelay: '0.3s' }}>
           <StatCard
             title="本周减重"
             value={stats.weeklyLost}
             unit="kg"
+            icon="📉"
           />
           <StatCard
             title="平均睡眠"
             value={stats.avgSleep}
             unit="小时"
+            icon="😴"
           />
           <StatCard
             title="平均执行率"
             value={stats.avgDietExecution}
             unit="%"
+            icon="🥗"
           />
           <StatCard
             title="连续记录"
             value={stats.streakDays}
             unit="天"
+            icon="🔥"
           />
         </div>
 
         {/* 图表区域 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <WeightChart data={chartData} />
-          <SleepChart data={chartData} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-scale-in" style={{ animationDelay: '0.4s' }}>
+          <div className="card-hover">
+            <WeightChart data={chartData} />
+          </div>
+          <div className="card-hover">
+            <SleepChart data={chartData} />
+          </div>
         </div>
 
         {/* 预计达标日期 */}
-        <Card>
+        <Card className="glass border-0 shadow-soft-lg animate-scale-in" style={{ animationDelay: '0.5s' }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">预计达标日期</p>
-              <p className="text-lg font-semibold text-gray-900 mt-1">{stats.estimatedReachDate}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">预计达标日期</p>
+              <p className="text-lg font-bold text-gradient font-display">{stats.estimatedReachDate}</p>
             </div>
-            <div className="text-2xl">🎯</div>
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-400 to-red-400 flex items-center justify-center text-2xl shadow-soft">
+              🎯
+            </div>
           </div>
         </Card>
       </div>

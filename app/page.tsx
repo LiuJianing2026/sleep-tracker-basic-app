@@ -11,7 +11,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 获取当前用户
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
@@ -20,7 +19,6 @@ export default function Home() {
 
     getUser();
 
-    // 监听登录状态变化
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
@@ -33,35 +31,56 @@ export default function Home() {
     await supabase.auth.signOut();
   };
 
+  const navItems = [
+    { href: '/dashboard', icon: '📊', label: '查看看板', variant: 'primary' as const },
+    { href: '/record', icon: '✏️', label: '今日记录', variant: 'secondary' as const },
+    { href: '/history', icon: '📅', label: '历史记录', variant: 'outline' as const },
+    { href: '/stats', icon: '🎴', label: '数据卡片', variant: 'outline' as const },
+    { href: '/settings', icon: '⚙️', label: '目标设置', variant: 'outline' as const },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
+      {/* 背景装饰 */}
+      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-gradient-to-br from-orange-200/30 to-red-200/30 rounded-full blur-3xl animate-gradient" />
+        <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-gradient-to-br from-teal-200/30 to-green-200/30 rounded-full blur-3xl animate-gradient" style={{ animationDelay: '4s' }} />
+      </div>
+
+      <div className="w-full max-w-md animate-fade-in-up">
+        {/* 标题区域 */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">LeanSleep Tracker</h1>
-          <p className="text-gray-600">减脂睡眠记录仪</p>
+          <h1 className="text-4xl sm:text-5xl font-bold mb-3 font-display tracking-tight">
+            <span className="text-gradient">LeanSleep</span>
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">
+            减脂 · 睡眠 · 进步
+          </p>
         </div>
 
-        {/* 用户信息区域 */}
-        <div className="mb-4">
+        {/* 用户信息卡片 */}
+        <div className="mb-6 animate-scale-in" style={{ animationDelay: '0.1s' }}>
           {loading ? (
-            <Card className="bg-gray-100">
-              <p className="text-center text-gray-500 py-3">加载中...</p>
+            <Card className="glass border-0">
+              <div className="flex items-center justify-center py-4">
+                <div className="animate-pulse-soft text-gray-500">加载中...</div>
+              </div>
             </Card>
           ) : user ? (
-            <Card>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium">
+            <Card className="glass border-0">
+              <div className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-red-400 flex items-center justify-center text-white font-bold text-lg shadow-soft">
                     {user.email?.[0].toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">当前用户</p>
-                    <p className="font-medium text-gray-900">{user.email}</p>
+                    <p className="text-xs text-gray-500">欢迎回来</p>
+                    <p className="font-semibold text-gray-900 dark:text-gray-100">{user.email}</p>
                   </div>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="text-sm text-gray-500 hover:text-gray-700"
+                  className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-sm font-medium transition-all hover:bg-gray-200 dark:hover:bg-gray-700"
                 >
                   退出
                 </button>
@@ -69,45 +88,41 @@ export default function Home() {
             </Card>
           ) : (
             <Link href="/login">
-              <Button className="w-full">
+              <Button className="w-full btn-hover shadow-soft-lg">
                 登录 / 注册
               </Button>
             </Link>
           )}
         </div>
 
-        <Card>
+        {/* 导航卡片 */}
+        <Card className="glass border-0 p-4 shadow-soft-lg animate-scale-in" style={{ animationDelay: '0.2s' }}>
           <div className="space-y-3">
-            <Link href="/dashboard" className="block">
-              <Button className="w-full" size="lg">
-                📊 查看看板
-              </Button>
-            </Link>
-            <Link href="/record" className="block">
-              <Button variant="secondary" className="w-full" size="lg">
-                ✏️ 今日记录
-              </Button>
-            </Link>
-            <Link href="/history" className="block">
-              <Button variant="outline" className="w-full" size="lg">
-                📅 历史记录
-              </Button>
-            </Link>
-            <Link href="/stats" className="block">
-              <Button variant="outline" className="w-full" size="lg">
-                🎴 数据卡片
-              </Button>
-            </Link>
-            <Link href="/settings" className="block">
-              <Button variant="outline" className="w-full" size="lg">
-                ⚙️ 目标设置
-              </Button>
-            </Link>
+            {navItems.map((item, index) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="block animate-fade-in"
+                style={{ animationDelay: `${0.3 + index * 0.08}s` }}
+              >
+                <Button
+                  variant={item.variant}
+                  className="w-full btn-hover"
+                  size="lg"
+                >
+                  <span className="mr-3 text-xl">{item.icon}</span>
+                  {item.label}
+                </Button>
+              </Link>
+            ))}
           </div>
         </Card>
 
-        <div className="mt-6 text-center text-sm text-gray-500">
-          <p>数据保存在 {user ? 'Supabase 云端' : '本地浏览器'}中</p>
+        {/* 底部信息 */}
+        <div className="mt-8 text-center animate-fade-in" style={{ animationDelay: '0.8s' }}>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            数据保存在 <span className="text-primary font-medium">{user ? 'Supabase 云端' : '本地浏览器'}</span> 中
+          </p>
         </div>
       </div>
     </div>

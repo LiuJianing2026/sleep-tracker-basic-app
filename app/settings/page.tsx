@@ -11,8 +11,8 @@ export default function SettingsPage() {
   const [goals, setGoals] = useState<any>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // 表单状态
   const [startWeight, setStartWeight] = useState('');
   const [targetWeight, setTargetWeight] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -25,7 +25,6 @@ export default function SettingsPage() {
 
   const loadGoals = async () => {
     try {
-      // 1. 获取当前用户
       const { data: { user }, error: userError } = await supabase.auth.getUser();
 
       if (userError) {
@@ -39,7 +38,6 @@ export default function SettingsPage() {
         return;
       }
 
-      // 2. 获取用户目标
       const { data, error } = await supabase
         .from('user_settings')
         .select('*')
@@ -68,18 +66,21 @@ export default function SettingsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaving(true);
+    setMessage(null);
 
     try {
-      // 1. 获取当前用户
       const { data: { user }, error: userError } = await supabase.auth.getUser();
 
       if (userError) {
         setMessage({ type: 'error', text: `获取用户失败: ${userError.message}` });
+        setSaving(false);
         return;
       }
 
       if (!user) {
         setMessage({ type: 'error', text: '请先登录' });
+        setSaving(false);
         return;
       }
 
@@ -92,7 +93,6 @@ export default function SettingsPage() {
         daily_calorie_target: parseInt(dailyCalorieTarget),
       };
 
-      // 2. 使用 upsert 保存（有则更新，无则插入）
       const { data, error } = await supabase
         .from('user_settings')
         .upsert(goalData, {
@@ -114,6 +114,8 @@ export default function SettingsPage() {
 
     } catch (err: any) {
       setMessage({ type: 'error', text: `错误: ${err.message}` });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -123,7 +125,6 @@ export default function SettingsPage() {
     }
 
     try {
-      // 1. 获取当前用户
       const { data: { user }, error: userError } = await supabase.auth.getUser();
 
       if (userError) {
@@ -136,7 +137,6 @@ export default function SettingsPage() {
         return;
       }
 
-      // 2. 删除目标设置
       const { error } = await supabase
         .from('user_settings')
         .delete()
@@ -164,29 +164,36 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">加载中...</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse-soft text-gray-500 dark:text-gray-400">加载中...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-6 lg:p-8">
+      {/* 背景装饰 */}
+      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/3 -left-20 w-96 h-96 bg-gradient-to-br from-orange-200/30 to-red-200/30 rounded-full blur-3xl animate-gradient" />
+        <div className="absolute bottom-1/3 -right-20 w-80 h-80 bg-gradient-to-br from-teal-200/30 to-green-200/30 rounded-full blur-3xl animate-gradient" style={{ animationDelay: '4s' }} />
+      </div>
+
       <div className="max-w-2xl mx-auto">
         {/* 头部 */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-8 animate-fade-in">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">目标设置</h1>
-            <p className="text-gray-600 mt-1">设置你的减脂目标</p>
+            <h1 className="text-3xl font-bold font-display tracking-tight">
+              <span className="text-gradient">目标设置</span>
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">设置你的减脂目标</p>
           </div>
           <Link href="/">
-            <Button variant="outline">返回首页</Button>
+            <Button variant="ghost">返回首页</Button>
           </Link>
         </div>
 
-        <Card>
+        <Card className="glass border-0 shadow-soft-lg animate-scale-in">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* 起始体重 */}
             <Input
               label="起始体重 (kg)"
               type="number"
@@ -197,7 +204,6 @@ export default function SettingsPage() {
               required
             />
 
-            {/* 目标体重 */}
             <Input
               label="目标体重 (kg)"
               type="number"
@@ -208,7 +214,6 @@ export default function SettingsPage() {
               required
             />
 
-            {/* 开始日期 */}
             <Input
               label="开始日期"
               type="date"
@@ -217,7 +222,6 @@ export default function SettingsPage() {
               required
             />
 
-            {/* 预计周数 */}
             <Input
               label="预计周数"
               type="number"
@@ -227,7 +231,6 @@ export default function SettingsPage() {
               required
             />
 
-            {/* 每日热量目标 */}
             <Input
               label="每日热量目标 (大卡)"
               type="number"
@@ -237,51 +240,51 @@ export default function SettingsPage() {
               required
             />
 
-            {/* 当前目标预览 */}
             {goals && (
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm font-medium text-gray-700 mb-2">当前目标预览：</p>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="text-gray-500">起始：</span>
-                    <span className="text-gray-900">{goals.start_weight} kg</span>
+              <div className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-3xl p-5 border border-orange-100 dark:border-orange-800/30">
+                <p className="text-sm font-semibold text-orange-800 dark:text-orange-300 mb-4">当前目标预览：</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">起始</span>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">{goals.start_weight} kg</span>
                   </div>
-                  <div>
-                    <span className="text-gray-500">目标：</span>
-                    <span className="text-gray-900">{goals.target_weight} kg</span>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">目标</span>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">{goals.target_weight} kg</span>
                   </div>
-                  <div>
-                    <span className="text-gray-500">需要减重：</span>
-                    <span className="text-gray-900">{(goals.start_weight - goals.target_weight).toFixed(1)} kg</span>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">需要减重</span>
+                    <span className="font-semibold text-orange-500">{(goals.start_weight - goals.target_weight).toFixed(1)} kg</span>
                   </div>
-                  <div>
-                    <span className="text-gray-500">预计速度：</span>
-                    <span className="text-gray-900">{((goals.start_weight - goals.target_weight) / goals.expected_weeks).toFixed(2)} kg/周</span>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">预计速度</span>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">{((goals.start_weight - goals.target_weight) / goals.expected_weeks).toFixed(2)} kg/周</span>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* 按钮组 */}
             <div className="flex gap-4">
-              <Button type="submit" className="flex-1">
-                保存设置
+              <Button type="submit" className="flex-1 btn-hover" loading={saving}>
+                {saving ? '保存中...' : '保存设置'}
               </Button>
               {goals && (
                 <Button
                   type="button"
                   variant="danger"
                   onClick={handleClear}
+                  className="btn-hover"
                 >
                   清除设置
                 </Button>
               )}
             </div>
 
-            {/* 提示消息 */}
             {message && (
-              <div className={`p-3 rounded-lg text-center ${
-                message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+              <div className={`p-4 rounded-2xl text-center transition-all ${
+                message.type === 'success'
+                  ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                  : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'
               }`}>
                 {message.text}
               </div>

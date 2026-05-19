@@ -10,6 +10,8 @@ import { supabase } from '@/lib/supabaseClient';
 export default function RecordPage() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [weight, setWeight] = useState('');
+  const [morningWeight, setMorningWeight] = useState('');
+  const [eveningWeight, setEveningWeight] = useState('');
   const [sleepHours, setSleepHours] = useState('');
   const [sleepQuality, setSleepQuality] = useState('');
   const [dietExecution, setDietExecution] = useState('');
@@ -34,8 +36,8 @@ export default function RecordPage() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!weight || parseFloat(weight) <= 0 || parseFloat(weight) > 300) {
-      newErrors.weight = '请输入有效的体重（1-300kg）';
+    if (!morningWeight && !eveningWeight) {
+      newErrors.weight = '请至少填写早晨体重或晚上体重';
     }
     if (!sleepHours || parseFloat(sleepHours) < 0 || parseFloat(sleepHours) > 24) {
       newErrors.sleepHours = '请输入有效的睡眠时长（0-24小时）';
@@ -56,6 +58,7 @@ export default function RecordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('开始保存');
 
     if (!validate()) {
       return;
@@ -82,7 +85,11 @@ export default function RecordPage() {
       const recordData = {
         user_id: user.id,
         record_date: date,
-        weight: weightUnit === 'jin' ? parseFloat(weight) * 0.5 : parseFloat(weight),
+        weight: (morningWeight || eveningWeight)
+          ? (weightUnit === 'jin' ? parseFloat(morningWeight || eveningWeight) * 0.5 : parseFloat(morningWeight || eveningWeight))
+          : null,
+        morning_weight: morningWeight ? (weightUnit === 'jin' ? parseFloat(morningWeight) * 0.5 : parseFloat(morningWeight)) : null,
+        evening_weight: eveningWeight ? (weightUnit === 'jin' ? parseFloat(eveningWeight) * 0.5 : parseFloat(eveningWeight)) : null,
         sleep_hours: parseFloat(sleepHours),
         sleep_quality: parseInt(sleepQuality),
         diet_execution: parseFloat(dietExecution),
@@ -109,6 +116,8 @@ export default function RecordPage() {
       setMessage({ type: 'success', text: '记录保存成功！' });
 
       setWeight('');
+      setMorningWeight('');
+      setEveningWeight('');
       setSleepHours('');
       setSleepQuality('');
       setDietExecution('');
@@ -160,7 +169,7 @@ export default function RecordPage() {
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">体重</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">体重单位</label>
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -182,20 +191,35 @@ export default function RecordPage() {
                   </button>
                 </div>
               </div>
-              <Input
-                label=""
-                type="number"
-                step="0.1"
-                placeholder={`例如：${weightUnit === 'kg' ? '75.5' : '151'}`}
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-                error={errors.weight}
-                required
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {weightUnit === 'kg' ? '1 斤 = 0.5 kg' : '保存时自动转换为 kg'}
-              </p>
             </div>
+
+            <Input
+              label="早晨体重"
+              type="number"
+              step="0.1"
+              placeholder={`例如：${weightUnit === 'kg' ? '75.5' : '151'}`}
+              value={morningWeight}
+              onChange={(e) => setMorningWeight(e.target.value)}
+              hint={`保存时自动转换为 kg`}
+            />
+
+            <Input
+              label="晚上体重"
+              type="number"
+              step="0.1"
+              placeholder={`例如：${weightUnit === 'kg' ? '74.8' : '149.6'}`}
+              value={eveningWeight}
+              onChange={(e) => setEveningWeight(e.target.value)}
+              hint={`保存时自动转换为 kg`}
+            />
+
+            {errors.weight && (
+              <p className="text-sm text-red-500 mt-1">{errors.weight}</p>
+            )}
+
+            <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">
+              {weightUnit === 'kg' ? '1 斤 = 0.5 kg' : '保存时自动转换为 kg'}
+            </p>
 
             <Input
               label="睡眠时长（小时）"

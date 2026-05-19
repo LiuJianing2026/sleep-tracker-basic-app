@@ -168,10 +168,14 @@ export default function HistoryPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                       <div className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-2xl p-3">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">体重</p>
-                        <p className="text-lg font-bold text-orange-500">{record.weight} <span className="text-sm text-gray-500">kg</span></p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">早晨体重</p>
+                        <p className="text-lg font-bold text-orange-500">{record.morning_weight || '-'} <span className="text-sm text-gray-500">kg</span></p>
+                      </div>
+                      <div className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 rounded-2xl p-3">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">晚上体重</p>
+                        <p className="text-lg font-bold text-amber-500">{record.evening_weight || '-'} <span className="text-sm text-gray-500">kg</span></p>
                       </div>
                       <div className="bg-gradient-to-br from-teal-50 to-green-50 dark:from-teal-900/20 dark:to-green-900/20 rounded-2xl p-3">
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">睡眠</p>

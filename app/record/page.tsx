@@ -39,18 +39,6 @@ export default function RecordPage() {
     if (!morningWeight && !eveningWeight) {
       newErrors.weight = '请至少填写早晨体重或晚上体重';
     }
-    if (!sleepHours || parseFloat(sleepHours) < 0 || parseFloat(sleepHours) > 24) {
-      newErrors.sleepHours = '请输入有效的睡眠时长（0-24小时）';
-    }
-    if (!sleepQuality) {
-      newErrors.sleepQuality = '请选择睡眠质量';
-    }
-    if (!dietExecution || parseFloat(dietExecution) < 0 || parseFloat(dietExecution) > 100) {
-      newErrors.dietExecution = '请输入有效的执行率（0-100%）';
-    }
-    if (!water || parseFloat(water) < 0 || parseFloat(water) > 10000) {
-      newErrors.water = '请输入有效的饮水量（0-10000ml）';
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -82,22 +70,87 @@ export default function RecordPage() {
         return;
       }
 
-      const recordData = {
+      let existingRecord = null;
+      const { data: existingData, error: fetchError } = await supabase
+        .from('daily_records')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('record_date', date)
+        .single();
+
+      if (!fetchError) {
+        existingRecord = existingData;
+      }
+
+      const recordData: Record<string, any> = {
         user_id: user.id,
         record_date: date,
-        weight: (morningWeight || eveningWeight)
-          ? (weightUnit === 'jin' ? parseFloat(morningWeight || eveningWeight) * 0.5 : parseFloat(morningWeight || eveningWeight))
-          : null,
-        morning_weight: morningWeight ? (weightUnit === 'jin' ? parseFloat(morningWeight) * 0.5 : parseFloat(morningWeight)) : null,
-        evening_weight: eveningWeight ? (weightUnit === 'jin' ? parseFloat(eveningWeight) * 0.5 : parseFloat(eveningWeight)) : null,
-        sleep_hours: parseFloat(sleepHours),
-        sleep_quality: parseInt(sleepQuality),
-        diet_execution: parseFloat(dietExecution),
-        water: parseFloat(water),
-        exercise_type: exerciseType || null,
-        exercise_duration: exerciseDuration ? parseInt(exerciseDuration) : null,
-        note: note || null,
       };
+
+      if (morningWeight !== '') {
+        recordData.morning_weight = weightUnit === 'jin' ? parseFloat(morningWeight) * 0.5 : parseFloat(morningWeight);
+        recordData.weight = recordData.morning_weight;
+      } else if (existingRecord?.morning_weight !== undefined) {
+        recordData.morning_weight = existingRecord.morning_weight;
+        recordData.weight = existingRecord.weight || existingRecord.morning_weight;
+      }
+
+      if (eveningWeight !== '') {
+        recordData.evening_weight = weightUnit === 'jin' ? parseFloat(eveningWeight) * 0.5 : parseFloat(eveningWeight);
+        if (!recordData.weight) {
+          recordData.weight = recordData.evening_weight;
+        }
+      } else if (existingRecord?.evening_weight !== undefined) {
+        recordData.evening_weight = existingRecord.evening_weight;
+      }
+
+      if (sleepHours !== '') {
+        recordData.sleep_hours = parseFloat(sleepHours);
+      } else if (existingRecord?.sleep_hours !== undefined) {
+        recordData.sleep_hours = existingRecord.sleep_hours;
+      }
+
+      if (sleepQuality !== '') {
+        recordData.sleep_quality = parseInt(sleepQuality);
+      } else if (existingRecord?.sleep_quality !== undefined) {
+        recordData.sleep_quality = existingRecord.sleep_quality;
+      }
+
+      if (dietExecution !== '') {
+        recordData.diet_execution = parseFloat(dietExecution);
+      } else if (existingRecord?.diet_execution !== undefined) {
+        recordData.diet_execution = existingRecord.diet_execution;
+      }
+
+      if (water !== '') {
+        recordData.water = parseFloat(water);
+      } else if (existingRecord?.water !== undefined) {
+        recordData.water = existingRecord.water;
+      }
+
+      if (exerciseType !== '') {
+        recordData.exercise_type = exerciseType;
+      } else if (existingRecord?.exercise_type !== undefined) {
+        recordData.exercise_type = existingRecord.exercise_type;
+      } else {
+        recordData.exercise_type = null;
+      }
+
+      if (exerciseDuration !== '' && exerciseDuration !== '0') {
+        recordData.exercise_duration = parseInt(exerciseDuration);
+      } else if (existingRecord?.exercise_duration !== undefined) {
+        recordData.exercise_duration = existingRecord.exercise_duration;
+      } else {
+        recordData.exercise_duration = null;
+      }
+
+      if (note !== '') {
+        recordData.note = note;
+      } else if (existingRecord?.note !== undefined) {
+        recordData.note = existingRecord.note;
+      } else {
+        recordData.note = null;
+      }
 
       const { data, error } = await supabase
         .from('daily_records')
@@ -137,14 +190,12 @@ export default function RecordPage() {
 
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-8">
-      {/* 背景装饰 */}
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
         <div className="absolute top-1/3 -left-20 w-96 h-96 bg-gradient-to-br from-orange-200/30 to-red-200/30 rounded-full blur-3xl animate-gradient" />
         <div className="absolute bottom-1/3 -right-20 w-80 h-80 bg-gradient-to-br from-teal-200/30 to-green-200/30 rounded-full blur-3xl animate-gradient" style={{ animationDelay: '4s' }} />
       </div>
 
       <div className="max-w-2xl mx-auto">
-        {/* 头部 */}
         <div className="flex items-center justify-between mb-8 animate-fade-in">
           <div>
             <h1 className="text-3xl font-bold font-display tracking-tight">
@@ -229,10 +280,8 @@ export default function RecordPage() {
               value={sleepHours}
               onChange={(e) => setSleepHours(e.target.value)}
               error={errors.sleepHours}
-              required
             />
 
-            {/* 睡眠质量 */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                 睡眠质量
@@ -256,14 +305,6 @@ export default function RecordPage() {
                   </button>
                 ))}
               </div>
-              {errors.sleepQuality && (
-                <p className="text-sm text-red-500 mt-2 flex items-center gap-1">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  {errors.sleepQuality}
-                </p>
-              )}
             </div>
 
             <Input
@@ -276,7 +317,6 @@ export default function RecordPage() {
               value={dietExecution}
               onChange={(e) => setDietExecution(e.target.value)}
               error={errors.dietExecution}
-              required
             />
 
             <Input
@@ -287,7 +327,6 @@ export default function RecordPage() {
               value={water}
               onChange={(e) => setWater(e.target.value)}
               error={errors.water}
-              required
             />
 
             <div className="grid grid-cols-2 gap-4">

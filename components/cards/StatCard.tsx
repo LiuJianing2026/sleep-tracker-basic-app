@@ -15,6 +15,11 @@ interface StatCardProps {
 }
 
 export const StatCard = ({ title, value, unit, icon, trend, className = '', gradient = false }: StatCardProps) => {
+  const formatValue = (val: string | number): string => {
+    if (typeof val === 'number') return val.toFixed(1);
+    return val;
+  };
+
   const bgGradient = gradient
     ? 'bg-gradient-to-br from-orange-400/10 to-red-400/10 dark:from-orange-400/5 dark:to-red-400/5'
     : 'bg-white/80 dark:bg-gray-800/80';
@@ -28,7 +33,7 @@ export const StatCard = ({ title, value, unit, icon, trend, className = '', grad
           </p>
           <div className="flex items-baseline gap-1">
             <span className="text-2xl sm:text-3xl font-bold font-display text-gray-900 dark:text-gray-100">
-              {value}
+              {formatValue(value)}
             </span>
             {unit && (
               <span className="text-sm text-gray-500 dark:text-gray-400">{unit}</span>
@@ -41,7 +46,7 @@ export const StatCard = ({ title, value, unit, icon, trend, className = '', grad
               <span className="text-base">
                 {trend.positive !== false ? '↓' : '↑'}
               </span>
-              <span className="font-medium">{Math.abs(trend.value)}</span>
+              <span className="font-medium">{Math.abs(trend.value).toFixed(1)}</span>
               <span className="text-gray-500">{trend.label}</span>
             </p>
           )}

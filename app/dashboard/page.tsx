@@ -74,6 +74,8 @@ export default function DashboardPage() {
   const chartData = records.slice(-14).map(r => ({
     date: r.record_date,
     weight: r.weight,
+    morning_weight: r.morning_weight,
+    evening_weight: r.evening_weight,
     sleepHours: r.sleep_hours,
   }));
 
@@ -157,8 +159,8 @@ export default function DashboardPage() {
               />
             </div>
             <div className="flex justify-between mt-3 text-xs text-gray-500 dark:text-gray-400">
-              <span>起始 {stats.currentWeight + stats.totalLost}kg</span>
-              <span>目标 {stats.remaining > 0 ? stats.currentWeight - stats.remaining : stats.currentWeight}kg</span>
+              <span>起始 {(stats.currentWeight + stats.totalLost).toFixed(1)}kg</span>
+              <span>目标 {stats.remaining > 0 ? (stats.currentWeight - stats.remaining).toFixed(1) : stats.currentWeight.toFixed(1)}kg</span>
             </div>
           </Card>
         )}
@@ -217,6 +219,28 @@ export default function DashboardPage() {
             value={stats.streakDays}
             unit="天"
             icon="🔥"
+          />
+        </div>
+
+        {/* 早晚体重对比 */}
+        <div className="grid grid-cols-3 gap-4 mb-8 animate-scale-in" style={{ animationDelay: '0.35s' }}>
+          <StatCard
+            title="今日早 vs 昨日早"
+            value={stats.morningVsYesterday}
+            unit=""
+            icon="📊"
+          />
+          <StatCard
+            title="今日早 vs 昨晚"
+            value={stats.morningVsLastEvening}
+            unit=""
+            icon="📈"
+          />
+          <StatCard
+            title="今晚 vs 今早"
+            value={stats.eveningVsMorning}
+            unit=""
+            icon="📉"
           />
         </div>
 
@@ -302,6 +326,34 @@ const getAvgDietExecution = (records: any[]): number => {
   return Number((sum / recent7.length).toFixed(1));
 };
 
+const getWeightComparisons = (records: any[]): any => {
+  if (records.length === 0) return { morningVsYesterday: '数据不足', morningVsLastEvening: '数据不足', eveningVsMorning: '数据不足' };
+
+  const latest = records[records.length - 1];
+  const yesterday = records.length > 1 ? records[records.length - 2] : null;
+
+  let morningVsYesterday = '数据不足';
+  let morningVsLastEvening = '数据不足';
+  let eveningVsMorning = '数据不足';
+
+  if (latest.morning_weight && yesterday?.morning_weight) {
+    const diff = (yesterday.morning_weight - latest.morning_weight).toFixed(1);
+    morningVsYesterday = diff > 0 ? `-${diff}kg` : (diff < 0 ? `+${Math.abs(parseFloat(diff))}kg` : '0kg');
+  }
+
+  if (latest.morning_weight && yesterday?.evening_weight) {
+    const diff = (yesterday.evening_weight - latest.morning_weight).toFixed(1);
+    morningVsLastEvening = diff > 0 ? `-${diff}kg` : (diff < 0 ? `+${Math.abs(parseFloat(diff))}kg` : '0kg');
+  }
+
+  if (latest.evening_weight && latest.morning_weight) {
+    const diff = (latest.morning_weight - latest.evening_weight).toFixed(1);
+    eveningVsMorning = diff > 0 ? `-${diff}kg` : (diff < 0 ? `+${Math.abs(parseFloat(diff))}kg` : '0kg');
+  }
+
+  return { morningVsYesterday, morningVsLastEvening, eveningVsMorning };
+};
+
 const getStreakDays = (records: any[]): number => {
   if (records.length === 0) return 0;
 
@@ -361,6 +413,7 @@ const calculateStats = (records: any[], goals: any): any => {
     avgDietExecution: getAvgDietExecution(records),
     streakDays: getStreakDays(records),
     estimatedReachDate: getEstimatedReachDate(records, goals),
+    ...getWeightComparisons(records),
   };
 };
 

@@ -1,60 +1,77 @@
 import { DailyRecord, UserGoals, Stats } from '@/types';
 
-/**
- * 计算当前体重（最新记录的体重）
- */
+const getEffectiveWeight = (record: DailyRecord): number | null => {
+  if (record.morning_weight !== undefined && record.morning_weight !== null && record.morning_weight > 0) {
+    return record.morning_weight;
+  }
+  if (record.evening_weight !== undefined && record.evening_weight !== null && record.evening_weight > 0) {
+    return record.evening_weight;
+  }
+  return null;
+};
+
 export const getCurrentWeight = (records: DailyRecord[]): number => {
   if (records.length === 0) return 0;
-  return records[records.length - 1].weight;
+  const reversed = [...records].reverse();
+  for (const r of reversed) {
+    const weight = getEffectiveWeight(r);
+    if (weight !== null) return weight;
+  }
+  return 0;
 };
 
-/**
- * 计算累计减重（起始体重 - 当前体重）
- */
 export const getTotalLost = (records: DailyRecord[], goals: UserGoals | null): number => {
   if (!goals || records.length === 0) return 0;
-  return goals.startWeight - getCurrentWeight(records);
+  const value = goals.startWeight - getCurrentWeight(records);
+  return Number(value.toFixed(1));
 };
 
-/**
- * 计算距离目标（当前体重 - 目标体重）
- */
 export const getRemaining = (records: DailyRecord[], goals: UserGoals | null): number => {
   if (!goals || records.length === 0) return 0;
-  return getCurrentWeight(records) - goals.targetWeight;
+  const value = getCurrentWeight(records) - goals.targetWeight;
+  return Number(value.toFixed(1));
 };
 
-/**
- * 计算近7日平均体重
- */
 export const getWeeklyAvgWeight = (records: DailyRecord[]): number => {
   const recent7 = records.slice(-7);
-  if (recent7.length === 0) return 0;
-  const sum = recent7.reduce((acc, r) => acc + r.weight, 0);
-  return Number((sum / recent7.length).toFixed(1));
+  const validRecords = recent7.filter(r => getEffectiveWeight(r) !== null);
+  if (validRecords.length === 0) return 0;
+  const sum = validRecords.reduce((acc, r) => acc + (getEffectiveWeight(r) || 0), 0);
+  return Number((sum / validRecords.length).toFixed(1));
 };
 
-/**
- * 计算本周减重（本周第一天 - 本周最后一天）
- */
 export const getWeeklyLost = (records: DailyRecord[]): number => {
   if (records.length < 2) return 0;
 
-  // 获取本周数据
   const today = new Date();
+  const dayOfWeek = today.getDay();
+  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+
   const weekStart = new Date(today);
-  weekStart.setDate(today.getDate() - today.getDay()); // 周日为一周开始
+  weekStart.setDate(today.getDate() - daysFromMonday);
   weekStart.setHours(0, 0, 0, 0);
 
-  const thisWeekRecords = records.filter(r => new Date(r.date) >= weekStart);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+
+  const weekStartKey = weekStart.toISOString().split('T')[0];
+  const weekEndKey = weekEnd.toISOString().split('T')[0];
+
+  const thisWeekRecords = records
+    .filter(r => {
+      const recordDate = r.date;
+      return recordDate >= weekStartKey && recordDate <= weekEndKey;
+    })
+    .filter(r => getEffectiveWeight(r) !== null)
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   if (thisWeekRecords.length < 2) return 0;
-  return Number((thisWeekRecords[0].weight - thisWeekRecords[thisWeekRecords.length - 1].weight).toFixed(1));
+
+  const firstWeight = getEffectiveWeight(thisWeekRecords[0]) || 0;
+  const lastWeight = getEffectiveWeight(thisWeekRecords[thisWeekRecords.length - 1]) || 0;
+  return Number((firstWeight - lastWeight).toFixed(1));
 };
 
-/**
- * 计算平均睡眠时长（近7天）
- */
 export const getAvgSleep = (records: DailyRecord[]): number => {
   const recent7 = records.slice(-7);
   if (recent7.length === 0) return 0;
@@ -62,9 +79,6 @@ export const getAvgSleep = (records: DailyRecord[]): number => {
   return Number((sum / recent7.length).toFixed(1));
 };
 
-/**
- * 计算平均饮食执行率（近7天）
- */
 export const getAvgDietExecution = (records: DailyRecord[]): number => {
   const recent7 = records.slice(-7);
   if (recent7.length === 0) return 0;
@@ -72,9 +86,6 @@ export const getAvgDietExecution = (records: DailyRecord[]): number => {
   return Number((sum / recent7.length).toFixed(1));
 };
 
-/**
- * 计算连续记录天数
- */
 export const getStreakDays = (records: DailyRecord[]): number => {
   if (records.length === 0) return 0;
 
@@ -101,10 +112,6 @@ export const getStreakDays = (records: DailyRecord[]): number => {
   return streak;
 };
 
-/**
- * 计算预计达标日期
- * 根据平均每周减重速度推算
- */
 export const getEstimatedReachDate = (records: DailyRecord[], goals: UserGoals | null): string => {
   if (!goals || records.length < 7) return '数据不足';
 
@@ -113,11 +120,13 @@ export const getEstimatedReachDate = (records: DailyRecord[], goals: UserGoals |
 
   if (remaining <= 0) return '已达标！';
 
-  // 计算过去4周的平均减重速度
   const recentRecords = records.slice(-28);
-  if (recentRecords.length < 2) return '数据不足';
+  const validRecords = recentRecords.filter(r => getEffectiveWeight(r) !== null);
+  if (validRecords.length < 2) return '数据不足';
 
-  const weeklyLoss = (recentRecords[0].weight - recentRecords[recentRecords.length - 1].weight) / 4;
+  const firstWeight = getEffectiveWeight(validRecords[0]) || 0;
+  const lastWeight = getEffectiveWeight(validRecords[validRecords.length - 1]) || 0;
+  const weeklyLoss = (firstWeight - lastWeight) / 4;
 
   if (weeklyLoss <= 0) return '无法预测';
 
@@ -128,9 +137,6 @@ export const getEstimatedReachDate = (records: DailyRecord[], goals: UserGoals |
   return targetDate.toLocaleDateString('zh-CN');
 };
 
-/**
- * 计算所有统计数据
- */
 export const calculateStats = (records: DailyRecord[], goals: UserGoals | null): Stats => {
   return {
     currentWeight: getCurrentWeight(records),
@@ -145,9 +151,6 @@ export const calculateStats = (records: DailyRecord[], goals: UserGoals | null):
   };
 };
 
-/**
- * 计算减重进度百分比
- */
 export const getProgressPercent = (records: DailyRecord[], goals: UserGoals | null): number => {
   if (!goals || goals.startWeight === goals.targetWeight) return 0;
 

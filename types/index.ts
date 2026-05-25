@@ -3,6 +3,8 @@ export interface DailyRecord {
   id: string;              // 唯一标识 (YYYY-MM-DD)
   date: string;            // 日期
   weight: number;          // 体重 (kg)
+  morning_weight?: number; // 早晨体重 (kg)
+  evening_weight?: number; // 晚上体重 (kg)
   sleepHours: number;      // 睡眠时长 (小时)
   sleepQuality: number;    // 睡眠质量评分 (1-5)
   dietExecution: number;   // 饮食执行率 (%)

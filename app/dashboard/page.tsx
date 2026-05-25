@@ -18,6 +18,80 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [weightUnit, setWeightUnit] = useState<'kg' | 'jin'>('kg');
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  const toDateKey = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+
+  const parseDateKeyAsLocalDate = (dateKey: string) => {
+    const [y, m, d] = dateKey.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  };
+
+  const getWeekRangeByDateKey = (dateKey: string) => {
+    const date = parseDateKeyAsLocalDate(dateKey);
+    const day = date.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const weekStart = new Date(date);
+    weekStart.setDate(date.getDate() + diffToMonday);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    return {
+      startKey: toDateKey(weekStart),
+      endKey: toDateKey(weekEnd),
+    };
+  };
+
+  const getWeekRange = (offset: number) => {
+    const today = new Date();
+    const todayKey = toDateKey(today);
+    const currentWeek = getWeekRangeByDateKey(todayKey);
+    const baseDate = parseDateKeyAsLocalDate(currentWeek.startKey);
+    baseDate.setDate(baseDate.getDate() + (offset * 7));
+    const targetWeek = getWeekRangeByDateKey(toDateKey(baseDate));
+    const startDate = parseDateKeyAsLocalDate(targetWeek.startKey);
+    const endDate = parseDateKeyAsLocalDate(targetWeek.endKey);
+    return {
+      startKey: targetWeek.startKey,
+      endKey: targetWeek.endKey,
+      startStr: `${startDate.getMonth() + 1}月${startDate.getDate()}日`,
+      endStr: `${endDate.getMonth() + 1}月${endDate.getDate()}日`,
+    };
+  };
+
+  const getWeeklyStatsForOffset = (offset: number) => {
+    const week = getWeekRange(offset);
+    const weekRecords = records
+      .filter(r => r.record_date >= week.startKey && r.record_date <= week.endKey)
+      .filter(r => r.morning_weight && r.morning_weight > 0)
+      .sort((a, b) => a.record_date.localeCompare(b.record_date));
+    
+    if (weekRecords.length < 2) {
+      return {
+        period: `${week.startStr} - ${week.endStr}`,
+        recordDays: weekRecords.length,
+        firstWeight: null,
+        lastWeight: null,
+        weeklyLost: null,
+        isCurrentWeek: offset === 0,
+      };
+    }
+    
+    return {
+      period: `${week.startStr} - ${week.endStr}`,
+      recordDays: weekRecords.length,
+      firstWeight: weekRecords[0].morning_weight,
+      lastWeight: weekRecords[weekRecords.length - 1].morning_weight,
+      weeklyLost: weekRecords[0].morning_weight - weekRecords[weekRecords.length - 1].morning_weight,
+      isCurrentWeek: offset === 0,
+    };
+  };
+
+  const weeklyStats = getWeeklyStatsForOffset(weekOffset);
 
   const loadData = async () => {
     setLoading(true);
@@ -199,14 +273,66 @@ export default function DashboardPage() {
           />
         </div>
 
+        {/* 周统计选择器 */}
+        <div className="mb-8 animate-scale-in" style={{ animationDelay: '0.25s' }}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">周统计</h3>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setWeekOffset(prev => prev - 1)}
+                className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              >
+                ←
+              </button>
+              <span className="text-sm font-medium px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 min-w-[120px] text-center">
+                {weeklyStats.isCurrentWeek ? '本周' : weeklyStats.period}
+              </span>
+              <button
+                onClick={() => setWeekOffset(prev => prev + 1)}
+                disabled={weekOffset >= 0}
+                className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                →
+              </button>
+              {weekOffset !== 0 && (
+                <button
+                  onClick={() => setWeekOffset(0)}
+                  className="text-sm text-blue-500 hover:text-blue-600 font-medium"
+                >
+                  返回本周
+                </button>
+              )}
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="glass border-0 shadow-soft p-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">记录天数</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{weeklyStats.recordDays} <span className="text-sm text-gray-500">天</span></p>
+            </Card>
+            <Card className="glass border-0 shadow-soft p-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">起始体重</p>
+              <p className="text-2xl font-bold text-orange-500">
+                {weeklyStats.firstWeight ? `${formatWeight(weeklyStats.firstWeight, weightUnit)}${weightUnit === 'kg' ? 'kg' : '斤'}` : '-'}
+              </p>
+            </Card>
+            <Card className="glass border-0 shadow-soft p-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">结束体重</p>
+              <p className="text-2xl font-bold text-amber-500">
+                {weeklyStats.lastWeight ? `${formatWeight(weeklyStats.lastWeight, weightUnit)}${weightUnit === 'kg' ? 'kg' : '斤'}` : '-'}
+              </p>
+            </Card>
+            <Card className="glass border-0 shadow-soft p-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">周减重</p>
+              <p className={`text-2xl font-bold ${weeklyStats.weeklyLost !== null ? 'text-green-500' : 'text-gray-400'}`}>
+                {weeklyStats.weeklyLost !== null ? `${formatWeight(weeklyStats.weeklyLost, weightUnit)}${weightUnit === 'kg' ? 'kg' : '斤'}` : '数据不足'}
+              </p>
+            </Card>
+          </div>
+        </div>
+
         {/* 第二排指标 */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-scale-in" style={{ animationDelay: '0.3s' }}>
-          <StatCard
-            title="本周减重"
-            value={parseFloat(formatWeight(stats.weeklyLost, weightUnit))}
-            unit={weightUnit === 'jin' ? '斤' : 'kg'}
-            icon="📉"
-          />
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8 animate-scale-in" style={{ animationDelay: '0.3s' }}>
           <StatCard
             title="平均睡眠"
             value={stats.avgSleep}

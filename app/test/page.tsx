@@ -18,7 +18,6 @@ export default function TestPage() {
       setStatus('loading');
       setMessage('正在连接 Supabase...');
 
-      // 1. 检查环境变量是否正确加载
       const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -30,7 +29,6 @@ export default function TestPage() {
 
       setMessage('环境变量已加载，正在测试连接...');
 
-      // 2. 检查客户端是否初始化成功
       if (!supabase) {
         setStatus('error');
         setMessage('Supabase 客户端初始化失败');
@@ -39,8 +37,6 @@ export default function TestPage() {
 
       setMessage('客户端已初始化，正在查询表...');
 
-      // 3. 查询表（检查表是否存在和 RLS 是否正常）
-      // 注意：这里只查询 count，不读取真实数据
       const { count, error } = await supabase
         .from('daily_records')
         .select('*', { count: 'exact', head: true });
@@ -53,7 +49,6 @@ export default function TestPage() {
 
       setRecordsCount(count);
 
-      // 4. 获取当前用户信息（如果已登录）
       const { data: { user } } = await supabase.auth.getUser();
       setAuthInfo(user);
 
@@ -74,7 +69,7 @@ export default function TestPage() {
     };
     return (
       <span className={`px-3 py-1 rounded-full text-sm font-medium ${styles[status]}`}>
-        {status === 'loading' ? '⏳ 测试中'} : status === 'success' ? '✅ 成功' : '❌ 失败'}
+        {status === 'loading' ? '测试中' : status === 'success' ? '成功' : '失败'}
       </span>
     );
   };
@@ -88,7 +83,6 @@ export default function TestPage() {
         </div>
 
         <div className="space-y-4">
-          {/* 状态卡片 */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">连接状态</h2>
@@ -97,7 +91,6 @@ export default function TestPage() {
             <p className="text-gray-700">{message}</p>
           </div>
 
-          {/* 测试详情 */}
           {status === 'success' && (
             <>
               <div className="bg-white rounded-lg shadow p-6">
@@ -105,19 +98,19 @@ export default function TestPage() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between py-2 border-b">
                     <span className="text-gray-500">环境变量 URL</span>
-                    <span className="text-green-600">✓ 已加载</span>
+                    <span className="text-green-600">已加载</span>
                   </div>
                   <div className="flex justify-between py-2 border-b">
                     <span className="text-gray-500">环境变量 Anon Key</span>
-                    <span className="text-green-600">✓ 已加载</span>
+                    <span className="text-green-600">已加载</span>
                   </div>
                   <div className="flex justify-between py-2 border-b">
                     <span className="text-gray-500">客户端初始化</span>
-                    <span className="text-green-600">✓ 成功</span>
+                    <span className="text-green-600">成功</span>
                   </div>
                   <div className="flex justify-between py-2 border-b">
                     <span className="text-gray-500">daily_records 表</span>
-                    <span className="text-green-600">✓ 可访问</span>
+                    <span className="text-green-600">可访问</span>
                   </div>
                   <div className="flex justify-between py-2">
                     <span className="text-gray-500">记录数量</span>
@@ -126,7 +119,6 @@ export default function TestPage() {
                 </div>
               </div>
 
-              {/* 用户信息 */}
               <div className="bg-white rounded-lg shadow p-6">
                 <h2 className="text-lg font-semibold mb-4">登录状态</h2>
                 {authInfo ? (
@@ -142,7 +134,7 @@ export default function TestPage() {
                   </div>
                 ) : (
                   <p className="text-gray-500">当前未登录（这是正常的，因为还没有实现登录功能）</p>
-                </div>
+                )}
               </div>
             </>
           )}
@@ -159,7 +151,6 @@ export default function TestPage() {
             </div>
           )}
 
-          {/* 重新测试按钮 */}
           <button
             onClick={runTest}
             className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
@@ -168,7 +159,6 @@ export default function TestPage() {
           </button>
         </div>
 
-        {/* 返回链接 */}
         <div className="mt-6 text-center">
           <a href="/" className="text-blue-500 hover:underline">返回首页</a>
         </div>

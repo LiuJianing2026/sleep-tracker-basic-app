@@ -1,5 +1,20 @@
 import { DailyRecord, UserGoals, Stats } from '@/types';
 
+export const formatWeight = (weight: number, unit: 'kg' | 'jin'): string => {
+  if (unit === 'jin') {
+    return (weight * 2).toFixed(1);
+  }
+  return weight.toFixed(1);
+};
+
+export const parseWeightInput = (input: string, unit: 'kg' | 'jin'): number => {
+  const value = parseFloat(input);
+  if (unit === 'jin') {
+    return value * 0.5;
+  }
+  return value;
+};
+
 const getEffectiveWeight = (record: DailyRecord): number | null => {
   if (record.morning_weight !== undefined && record.morning_weight !== null && record.morning_weight > 0) {
     return record.morning_weight;

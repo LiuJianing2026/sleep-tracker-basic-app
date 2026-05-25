@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { supabase } from '@/lib/supabaseClient';
+import { formatWeight, parseWeightInput } from '@/lib/calculations';
 
 export default function SettingsPage() {
   const [goals, setGoals] = useState<any>(null);
@@ -18,10 +19,7 @@ export default function SettingsPage() {
   const [startDate, setStartDate] = useState('');
   const [expectedWeeks, setExpectedWeeks] = useState('');
   const [dailyCalorieTarget, setDailyCalorieTarget] = useState('');
-
-  useEffect(() => {
-    loadGoals();
-  }, []);
+  const [weightUnit, setWeightUnit] = useState<'kg' | 'jin'>('kg');
 
   const loadGoals = async () => {
     try {
@@ -50,11 +48,13 @@ export default function SettingsPage() {
 
       if (data) {
         setGoals(data);
-        setStartWeight(data.start_weight.toString());
-        setTargetWeight(data.target_weight.toString());
+        const unit = (data.weight_unit as 'kg' | 'jin') || 'kg';
+        setStartWeight(formatWeight(data.start_weight, unit));
+        setTargetWeight(formatWeight(data.target_weight, unit));
         setStartDate(data.start_date);
         setExpectedWeeks(data.expected_weeks.toString());
         setDailyCalorieTarget(data.daily_calorie_target.toString());
+        setWeightUnit(unit);
       }
 
     } catch (err) {
@@ -63,6 +63,23 @@ export default function SettingsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadGoals();
+  }, []);
+
+  useEffect(() => {
+    if (startWeight && targetWeight) {
+      const currentStart = parseFloat(startWeight);
+      const currentTarget = parseFloat(targetWeight);
+      if (!isNaN(currentStart)) {
+        setStartWeight((currentStart * (weightUnit === 'jin' ? 2 : 0.5)).toFixed(1));
+      }
+      if (!isNaN(currentTarget)) {
+        setTargetWeight((currentTarget * (weightUnit === 'jin' ? 2 : 0.5)).toFixed(1));
+      }
+    }
+  }, [weightUnit]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,11 +103,12 @@ export default function SettingsPage() {
 
       const goalData = {
         user_id: user.id,
-        start_weight: parseFloat(startWeight),
-        target_weight: parseFloat(targetWeight),
+        start_weight: parseWeightInput(startWeight, weightUnit),
+        target_weight: parseWeightInput(targetWeight, weightUnit),
         start_date: startDate,
         expected_weeks: parseInt(expectedWeeks),
         daily_calorie_target: parseInt(dailyCalorieTarget),
+        weight_unit: weightUnit,
       };
 
       const { data, error } = await supabase
@@ -195,20 +213,20 @@ export default function SettingsPage() {
         <Card className="glass border-0 shadow-soft-lg animate-scale-in">
           <form onSubmit={handleSubmit} className="space-y-6">
             <Input
-              label="起始体重 (kg)"
+              label={`起始体重 (${weightUnit === 'kg' ? 'kg' : '斤'})`}
               type="number"
               step="0.1"
-              placeholder="例如：75.5"
+              placeholder={weightUnit === 'kg' ? '例如：75.5' : '例如：151'}
               value={startWeight}
               onChange={(e) => setStartWeight(e.target.value)}
               required
             />
 
             <Input
-              label="目标体重 (kg)"
+              label={`目标体重 (${weightUnit === 'kg' ? 'kg' : '斤'})`}
               type="number"
               step="0.1"
-              placeholder="例如：68"
+              placeholder={weightUnit === 'kg' ? '例如：68' : '例如：136'}
               value={targetWeight}
               onChange={(e) => setTargetWeight(e.target.value)}
               required
@@ -240,25 +258,58 @@ export default function SettingsPage() {
               required
             />
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                体重显示单位
+              </label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setWeightUnit('kg')}
+                  className={`flex-1 py-3 rounded-2xl font-medium transition-all ${
+                    weightUnit === 'kg'
+                      ? 'bg-blue-500 text-white shadow-lg'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  kg（公斤）
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWeightUnit('jin')}
+                  className={`flex-1 py-3 rounded-2xl font-medium transition-all ${
+                    weightUnit === 'jin'
+                      ? 'bg-blue-500 text-white shadow-lg'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  斤
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                选择后，所有页面的体重显示将使用此单位
+              </p>
+            </div>
+
             {goals && (
               <div className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-3xl p-5 border border-orange-100 dark:border-orange-800/30">
                 <p className="text-sm font-semibold text-orange-800 dark:text-orange-300 mb-4">当前目标预览：</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">起始</span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">{goals.start_weight} kg</span>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">{formatWeight(goals.start_weight, weightUnit)} {weightUnit === 'kg' ? 'kg' : '斤'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">目标</span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">{goals.target_weight} kg</span>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">{formatWeight(goals.target_weight, weightUnit)} {weightUnit === 'kg' ? 'kg' : '斤'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">需要减重</span>
-                    <span className="font-semibold text-orange-500">{(goals.start_weight - goals.target_weight).toFixed(1)} kg</span>
+                    <span className="font-semibold text-orange-500">{formatWeight(goals.start_weight - goals.target_weight, weightUnit)} {weightUnit === 'kg' ? 'kg' : '斤'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">预计速度</span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">{((goals.start_weight - goals.target_weight) / goals.expected_weeks).toFixed(2)} kg/周</span>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">{formatWeight((goals.start_weight - goals.target_weight) / goals.expected_weeks, weightUnit)} {weightUnit === 'kg' ? 'kg' : '斤'}/周</span>
                   </div>
                 </div>
               </div>

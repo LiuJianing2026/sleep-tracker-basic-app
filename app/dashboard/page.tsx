@@ -8,6 +8,7 @@ import { StatCard } from '@/components/cards/StatCard';
 import { WeightChart } from '@/components/charts/WeightChart';
 import { SleepChart } from '@/components/charts/SleepChart';
 import { supabase } from '@/lib/supabaseClient';
+import { formatWeight } from '@/lib/calculations';
 
 export default function DashboardPage() {
   const [records, setRecords] = useState<any[]>([]);
@@ -16,6 +17,7 @@ export default function DashboardPage() {
   const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [weightUnit, setWeightUnit] = useState<'kg' | 'jin'>('kg');
 
   const loadData = async () => {
     setLoading(true);
@@ -43,6 +45,9 @@ export default function DashboardPage() {
         .single();
 
       setGoals(goalsData);
+      if (goalsData?.weight_unit) {
+        setWeightUnit(goalsData.weight_unit as 'kg' | 'jin');
+      }
 
       const { data: recordsData } = await supabase
         .from('daily_records')
@@ -159,8 +164,8 @@ export default function DashboardPage() {
               />
             </div>
             <div className="flex justify-between mt-3 text-xs text-gray-500 dark:text-gray-400">
-              <span>起始 {(stats.currentWeight + stats.totalLost).toFixed(1)}kg</span>
-              <span>目标 {stats.remaining > 0 ? (stats.currentWeight - stats.remaining).toFixed(1) : stats.currentWeight.toFixed(1)}kg</span>
+              <span>起始 {formatWeight(stats.currentWeight + stats.totalLost, weightUnit)}{weightUnit === 'jin' ? '斤' : 'kg'}</span>
+              <span>目标 {formatWeight(stats.remaining > 0 ? stats.currentWeight - stats.remaining : stats.currentWeight, weightUnit)}{weightUnit === 'jin' ? '斤' : 'kg'}</span>
             </div>
           </Card>
         )}
@@ -169,27 +174,27 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 animate-scale-in" style={{ animationDelay: '0.2s' }}>
           <StatCard
             title="当前体重"
-            value={stats.currentWeight}
-            unit="kg"
+            value={parseFloat(formatWeight(stats.currentWeight, weightUnit))}
+            unit={weightUnit === 'jin' ? '斤' : 'kg'}
             gradient
           />
           <StatCard
             title="累计减重"
-            value={stats.totalLost}
-            unit="kg"
+            value={parseFloat(formatWeight(stats.totalLost, weightUnit))}
+            unit={weightUnit === 'jin' ? '斤' : 'kg'}
             trend={{ value: stats.totalLost, label: '累计' }}
             gradient
           />
           <StatCard
             title="距离目标"
-            value={stats.remaining}
-            unit="kg"
+            value={parseFloat(formatWeight(stats.remaining, weightUnit))}
+            unit={weightUnit === 'jin' ? '斤' : 'kg'}
             gradient
           />
           <StatCard
             title="7日平均"
-            value={stats.weeklyAvgWeight}
-            unit="kg"
+            value={parseFloat(formatWeight(stats.weeklyAvgWeight, weightUnit))}
+            unit={weightUnit === 'jin' ? '斤' : 'kg'}
             gradient
           />
         </div>
@@ -198,8 +203,8 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-scale-in" style={{ animationDelay: '0.3s' }}>
           <StatCard
             title="本周减重"
-            value={stats.weeklyLost}
-            unit="kg"
+            value={parseFloat(formatWeight(stats.weeklyLost, weightUnit))}
+            unit={weightUnit === 'jin' ? '斤' : 'kg'}
             icon="📉"
           />
           <StatCard
@@ -226,20 +231,20 @@ export default function DashboardPage() {
         <div className="grid grid-cols-3 gap-4 mb-8 animate-scale-in" style={{ animationDelay: '0.35s' }}>
           <StatCard
             title="今日早 vs 昨日早"
-            value={stats.morningVsYesterday}
-            unit=""
+            value={parseFloat(formatWeight(stats.morningVsYesterday, weightUnit))}
+            unit={weightUnit === 'jin' ? '斤' : 'kg'}
             icon="📊"
           />
           <StatCard
             title="今日早 vs 昨晚"
-            value={stats.morningVsLastEvening}
-            unit=""
+            value={parseFloat(formatWeight(stats.morningVsLastEvening, weightUnit))}
+            unit={weightUnit === 'jin' ? '斤' : 'kg'}
             icon="📈"
           />
           <StatCard
             title="今晚 vs 今早"
-            value={stats.eveningVsMorning}
-            unit=""
+            value={parseFloat(formatWeight(stats.eveningVsMorning, weightUnit))}
+            unit={weightUnit === 'jin' ? '斤' : 'kg'}
             icon="📉"
           />
         </div>
@@ -247,7 +252,7 @@ export default function DashboardPage() {
         {/* 图表区域 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-scale-in" style={{ animationDelay: '0.4s' }}>
           <div className="card-hover">
-            <WeightChart data={chartData} />
+            <WeightChart data={chartData} weightUnit={weightUnit} />
           </div>
           <div className="card-hover">
             <SleepChart data={chartData} />

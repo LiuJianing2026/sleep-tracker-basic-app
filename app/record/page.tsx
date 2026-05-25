@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { supabase } from '@/lib/supabaseClient';
+import { parseWeightInput } from '@/lib/calculations';
 
 export default function RecordPage() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -24,6 +25,28 @@ export default function RecordPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    loadUserSettings();
+  }, []);
+
+  const loadUserSettings = async () => {
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (!userError && user) {
+        const { data: settings } = await supabase
+          .from('user_settings')
+          .select('weight_unit')
+          .eq('user_id', user.id)
+          .single();
+        if (settings?.weight_unit) {
+          setWeightUnit(settings.weight_unit as 'kg' | 'jin');
+        }
+      }
+    } catch (err) {
+      console.error('加载用户设置失败:', err);
+    }
+  };
 
   const qualityOptions = [
     { value: 1, label: '很差', emoji: '😫', color: 'from-red-300 to-red-400' },
@@ -88,7 +111,7 @@ export default function RecordPage() {
       };
 
       if (morningWeight !== '') {
-        recordData.morning_weight = weightUnit === 'jin' ? parseFloat(morningWeight) * 0.5 : parseFloat(morningWeight);
+        recordData.morning_weight = parseWeightInput(morningWeight, weightUnit);
         recordData.weight = recordData.morning_weight;
       } else if (existingRecord?.morning_weight !== undefined) {
         recordData.morning_weight = existingRecord.morning_weight;
@@ -96,7 +119,7 @@ export default function RecordPage() {
       }
 
       if (eveningWeight !== '') {
-        recordData.evening_weight = weightUnit === 'jin' ? parseFloat(eveningWeight) * 0.5 : parseFloat(eveningWeight);
+        recordData.evening_weight = parseWeightInput(eveningWeight, weightUnit);
         if (!recordData.weight) {
           recordData.weight = recordData.evening_weight;
         }

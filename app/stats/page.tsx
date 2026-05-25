@@ -7,12 +7,14 @@ import { Card } from '@/components/ui/Card';
 import { WeeklyCard } from '@/components/cards/WeeklyCard';
 import { MonthlyCard } from '@/components/cards/MonthlyCard';
 import { supabase } from '@/lib/supabaseClient';
+import { formatWeight } from '@/lib/calculations';
 
 export default function StatsPage() {
   const [records, setRecords] = useState<any[]>([]);
   const [goals, setGoals] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [weightUnit, setWeightUnit] = useState<'kg' | 'jin'>('kg');
 
   useEffect(() => {
     loadData();
@@ -44,6 +46,9 @@ export default function StatsPage() {
         .single();
 
       setGoals(goalsData);
+      if (goalsData?.weight_unit) {
+        setWeightUnit(goalsData.weight_unit as 'kg' | 'jin');
+      }
 
       const { data: recordsData } = await supabase
         .from('daily_records')
@@ -127,14 +132,14 @@ export default function StatsPage() {
             <div className="animate-scale-in" style={{ animationDelay: '0.1s' }}>
               <h2 className="text-xl font-semibold font-display text-gray-900 dark:text-gray-100 mb-6 text-center">周报卡片</h2>
               <div className="flex justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-3xl p-8 sm:p-12 shadow-inner">
-                <WeeklyCard records={records} goals={goals} />
+                <WeeklyCard records={records} goals={goals} weightUnit={weightUnit} />
               </div>
             </div>
 
             <div className="animate-scale-in" style={{ animationDelay: '0.2s' }}>
               <h2 className="text-xl font-semibold font-display text-gray-900 dark:text-gray-100 mb-6 text-center">月报卡片</h2>
               <div className="flex justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-3xl p-8 sm:p-12 shadow-inner">
-                <MonthlyCard records={records} goals={goals} />
+                <MonthlyCard records={records} goals={goals} weightUnit={weightUnit} />
               </div>
             </div>
           </div>

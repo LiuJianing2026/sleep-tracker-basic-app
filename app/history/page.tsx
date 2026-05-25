@@ -5,11 +5,13 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { supabase } from '@/lib/supabaseClient';
+import { formatWeight } from '@/lib/calculations';
 
 export default function HistoryPage() {
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [weightUnit, setWeightUnit] = useState<'kg' | 'jin'>('kg');
 
   useEffect(() => {
     loadRecords();
@@ -33,6 +35,16 @@ export default function HistoryPage() {
       }
 
       setUser(user);
+
+      const { data: settings } = await supabase
+        .from('user_settings')
+        .select('weight_unit')
+        .eq('user_id', user.id)
+        .single();
+
+      if (settings?.weight_unit) {
+        setWeightUnit(settings.weight_unit as 'kg' | 'jin');
+      }
 
       const { data, error } = await supabase
         .from('daily_records')
@@ -171,11 +183,17 @@ export default function HistoryPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                       <div className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-2xl p-3">
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">早晨体重</p>
-                        <p className="text-lg font-bold text-orange-500">{record.morning_weight || '-'} <span className="text-sm text-gray-500">kg</span></p>
+                        <p className="text-lg font-bold text-orange-500">
+                          {record.morning_weight ? formatWeight(record.morning_weight, weightUnit) : '-'} 
+                          <span className="text-sm text-gray-500">{weightUnit === 'kg' ? 'kg' : '斤'}</span>
+                        </p>
                       </div>
                       <div className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 rounded-2xl p-3">
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">晚上体重</p>
-                        <p className="text-lg font-bold text-amber-500">{record.evening_weight || '-'} <span className="text-sm text-gray-500">kg</span></p>
+                        <p className="text-lg font-bold text-amber-500">
+                          {record.evening_weight ? formatWeight(record.evening_weight, weightUnit) : '-'} 
+                          <span className="text-sm text-gray-500">{weightUnit === 'kg' ? 'kg' : '斤'}</span>
+                        </p>
                       </div>
                       <div className="bg-gradient-to-br from-teal-50 to-green-50 dark:from-teal-900/20 dark:to-green-900/20 rounded-2xl p-3">
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">睡眠</p>
